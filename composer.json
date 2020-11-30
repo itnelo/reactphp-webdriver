@@ -15,21 +15,22 @@
     ],
     "autoload": {
         "psr-4": {
-            "Itnelo\\React\\": [
+            "Itnelo\\React\\WebDriver\\": [
                 "src/"
             ]
         }
     },
     "minimum-stability": "stable",
     "require": {
-        "php": ">=7.4"
+        "php": ">=7.4",
+        "react/promise": "^2.8"
     },
     "config": {
         "sort-packages": true
     },
     "extra": {
         "branch-alias": {
-            "dev-master": "0.1-dev"
+            "dev-master": "0.x-dev"
         }
     }
 }
