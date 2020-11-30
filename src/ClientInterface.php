@@ -38,7 +38,22 @@ interface ClientInterface
 
     /**
      * Returns a promise that resolves to a string, representing identifier of session that has been started by the
-     * remote WebDriver service
+     * remote WebDriver service.
+     *
+     * Usage example:
+     *
+     * ```
+     * $sessionIdentifierPromise = $webdriver->createSession();
+     *
+     * $sessionIdentifierPromise->then(
+     *     function (string $sessionIdentifier) {
+     *         // do some work
+     *     },
+     *     function (Throwable $rejectionReason) {
+     *         // handle exception
+     *     }
+     * );
+     * ```
      *
      * todo: argument to send desired capabilities, i.e. browser arguments and preferences (omitted)
      * todo: must also return a collection of confirmed browser capabilities (omitted)

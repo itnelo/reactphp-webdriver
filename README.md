@@ -35,8 +35,8 @@ See a self-documented [ClientInterface.php](src/ClientInterface.php) for the API
 ## See also
 
 - [php-webdriver/webdriver](https://github.com/php-webdriver/php-webdriver) — the original, "blocking" implementation; 
-to get information how to use some advanced methods, for example, [WebDriverKeys](https://github.com/php-webdriver/php-webdriver/blob/main/lib/WebDriverKeys.php#L10)
-helper describes Unicode strings for sending special inputs to page elements (e.g. `Ctrl`, `Alt`, etc.).
+to get information how to use some advanced methods. For example, [WebDriverKeys](https://github.com/php-webdriver/php-webdriver/blob/main/lib/WebDriverKeys.php#L10)
+helper describes Unicode strings for sending special inputs to page elements (e.g. `Ctrl`, `Alt` and other keys).
 
 ## Changelog
 

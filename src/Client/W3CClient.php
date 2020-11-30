@@ -16,10 +16,14 @@ declare(strict_types=1);
 namespace Itnelo\React\WebDriver\Client;
 
 use Itnelo\React\WebDriver\ClientInterface;
+use Psr\Http\Message\ResponseInterface;
 use React\Http\Browser;
+use React\Promise\Deferred;
 use React\Promise\PromiseInterface;
+use RuntimeException;
 use Symfony\Component\OptionsResolver\Exception\ExceptionInterface as OptionsResolverExceptionInterface;
 use Symfony\Component\OptionsResolver\OptionsResolver;
+use Throwable;
 
 /**
  * W3C compliant WebDriver client for Selenium Grid server (hub) that performs asynchronously.
@@ -129,7 +133,7 @@ class W3CClient implements ClientInterface
      */
     public function getSessionIdentifiers(): PromiseInterface
     {
-        // TODO: Implement getSessionIdentifiers() method.
+        // todo
     }
 
     /**
@@ -137,7 +141,58 @@ class W3CClient implements ClientInterface
      */
     public function createSession(): PromiseInterface
     {
-        // TODO: Implement createSession() method.
+        $sessionOpeningDeferred = new Deferred();
+
+        $requestUri = sprintf(
+            'http://%s:%d/wd/hub/session',
+            $this->_options['server']['host'],
+            $this->_options['server']['port']
+        );
+
+        $requestHeaders = [
+            'Content-Type' => 'application/json; charset=UTF-8',
+        ];
+
+        // todo: implement custom executable args / prefs support (omitted in the interface)
+        $requestContents = '{"capabilities":{"firstMatch":[{"browserName":"chrome","goog:chromeOptions":{"prefs":{"intl.accept_languages":"RU-ru,ru,en-US,en"},"args":["--user-data-dir=\/opt\/google\/chrome\/profiles"]}}]},"desiredCapabilities":{"browserName":"chrome","platform":"ANY","goog:chromeOptions":{"prefs":{"intl.accept_languages":"RU-ru,ru,en-US,en"},"args":["--user-data-dir=\/opt\/google\/chrome\/profiles"]}}}';
+
+        $responsePromise = $this->httpClient->post($requestUri, $requestHeaders, $requestContents);
+
+        $responsePromise->then(
+            function (ResponseInterface $response) use ($sessionOpeningDeferred) {
+                try {
+                    $responseBody = (string) $response->getBody();
+                    preg_match('/sessionid[":\s]+([a-z\d]{32})/Ui', $responseBody, $matches);
+
+                    if (!isset($matches[1])) {
+                        // todo: locate an error message or set it as "undefined error".
+                        throw new RuntimeException('Unable to locate session identifier in the response.');
+                    }
+
+                    $sessionIdentifier = $matches[1];
+                    $sessionOpeningDeferred->resolve($sessionIdentifier);
+                } catch (Throwable $exception) {
+                    $reason = new RuntimeException(
+                        'Unable to open a selenium hub session (response deserialization).',
+                        0,
+                        $exception
+                    );
+
+                    $sessionOpeningDeferred->reject($reason);
+                }
+            },
+            function (Throwable $rejectionReason) use ($sessionOpeningDeferred) {
+                $reason = new RuntimeException('Unable to open a selenium hub session (request).', 0, $rejectionReason);
+
+                $sessionOpeningDeferred->reject($reason);
+            }
+        );
+
+        $sessionIdentifierPromise = $sessionOpeningDeferred->promise();
+
+        // todo: apply timeout
+
+        return $sessionIdentifierPromise;
     }
 
     /**
