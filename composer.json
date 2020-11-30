@@ -23,7 +23,12 @@
     "minimum-stability": "stable",
     "require": {
         "php": ">=7.4",
-        "react/promise": "^2.8"
+        "react/http": "^1.1",
+        "react/promise": "^2.8",
+        "symfony/options-resolver": "^5.1"
+    },
+    "require-dev": {
+        "php-webdriver/webdriver": "^1.9"
     },
     "config": {
         "sort-packages": true

@@ -16,7 +16,10 @@ declare(strict_types=1);
 namespace Itnelo\React\WebDriver\Client;
 
 use Itnelo\React\WebDriver\ClientInterface;
+use React\Http\Browser;
 use React\Promise\PromiseInterface;
+use Symfony\Component\OptionsResolver\Exception\ExceptionInterface as OptionsResolverExceptionInterface;
+use Symfony\Component\OptionsResolver\OptionsResolver;
 
 /**
  * W3C compliant WebDriver client for Selenium Grid server (hub) that performs asynchronously.
@@ -31,6 +34,96 @@ use React\Promise\PromiseInterface;
  */
 class W3CClient implements ClientInterface
 {
+    /**
+     * Sends commands to the Selenium Grid endpoint using W3C protocol over HTTP
+     *
+     * @var Browser
+     *
+     * @see https://www.w3.org/TR/webdriver
+     */
+    private Browser $httpClient;
+
+    /**
+     * Array of options for the client
+     *
+     * @var array
+     */
+    private array $_options;
+
+    /**
+     * W3CClient constructor.
+     *
+     * Usage example:
+     *
+     * ```
+     * $loop = \React\EventLoop\Factory::create();
+     * $browser = new \React\Http\Browser($loop);
+     *
+     * $webdriver = new \Itnelo\React\WebDriver\Client\W3CClient(
+     *     $browser,
+     *     [
+     *         'server' => [
+     *             'host' => 'selenium-hub',
+     *             'port' => 4444,
+     *         ],
+     *         'request' => [
+     *             'timeout' => 30,
+     *         ],
+     *     ]
+     * );
+     * ```
+     *
+     * The "request.timeout" option here doesn't correlate with ReactPHP Browser's timeouts and will just cancel a
+     * pending promise after the specified time (in seconds); an HTTP request itself, which is handled by the ReactPHP
+     * Browser, may (or may not) be completed. Furthermore, the client can reject promise with a runtime exception if
+     * underlying browser has decided to stop waiting for the response by its own timeout settings.
+     *
+     * @param Browser $httpClient Sends commands to the Selenium Grid endpoint using W3C protocol over HTTP
+     * @param array   $options    Array of options for the client
+     *
+     * @throws OptionsResolverExceptionInterface Whenever an error has been occurred during client configuration
+     */
+    public function __construct(Browser $httpClient, array $options = [])
+    {
+        $this->httpClient = $httpClient;
+
+        $optionsResolver = new OptionsResolver();
+
+        $optionsResolver
+            ->define('server')
+            ->default(
+                function (OptionsResolver $serverOptionsResolver) {
+                    $serverOptionsResolver
+                        ->define('host')
+                        ->allowedTypes('string')
+                        ->default('127.0.0.1')
+                    ;
+
+                    $serverOptionsResolver
+                        ->define('port')
+                        ->allowedTypes('int')
+                        ->default(4444)
+                    ;
+                }
+            )
+        ;
+
+        $optionsResolver
+            ->define('request')
+            ->default(
+                function (OptionsResolver $requestOptionsResolver) {
+                    $requestOptionsResolver
+                        ->define('timeout')
+                        ->allowedTypes('int')
+                        ->default(30)
+                    ;
+                }
+            )
+        ;
+
+        $this->_options = $optionsResolver->resolve($options);
+    }
+
     /**
      * {@inheritDoc}
      */

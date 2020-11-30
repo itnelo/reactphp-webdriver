@@ -153,7 +153,7 @@ interface ClientInterface
      * Returns a promise that resolves to an array, representing identifier (an internal handle) of the currently
      * active (focused) element on page.
      *
-     * Resulting value is the same as {@link getElementIdentifier()}.
+     * Resulting value has the same representation as {@link getElementIdentifier()} resval.
      *
      * @param string $sessionIdentifier Session identifier for Selenium Grid server (hub)
      *
