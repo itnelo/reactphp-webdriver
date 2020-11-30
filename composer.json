@@ -1,0 +1,35 @@
+{
+    "name": "itnelo/reactphp-webdriver",
+    "type": "library",
+    "description": "An async, W3C compliant PHP client for Selenium Grid server (hub)",
+    "keywords": ["php", "reactphp", "webdriver", "selenium"],
+    "homepage": "https://github.com/itnelo/reactphp-webdriver",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Pavel Petrov",
+            "email": "itnelo@gmail.com",
+            "homepage": "https://ppetrov.it",
+            "role": "Developer"
+        }
+    ],
+    "autoload": {
+        "psr-4": {
+            "Itnelo\\React\\": [
+                "src/"
+            ]
+        }
+    },
+    "minimum-stability": "stable",
+    "require": {
+        "php": ">=7.4"
+    },
+    "config": {
+        "sort-packages": true
+    },
+    "extra": {
+        "branch-alias": {
+            "dev-master": "0.1-dev"
+        }
+    }
+}
