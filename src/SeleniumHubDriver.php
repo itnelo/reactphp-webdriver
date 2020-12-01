@@ -15,15 +15,17 @@ declare(strict_types=1);
 
 namespace Itnelo\React\WebDriver;
 
+use Itnelo\React\WebDriver\Timeout\Interceptor as TimeoutInterceptor;
 use React\EventLoop\LoopInterface;
 use React\Promise\PromiseInterface;
 use RuntimeException;
 use Symfony\Component\OptionsResolver\Exception\ExceptionInterface as ConfigurationExceptionInterface;
 use Symfony\Component\OptionsResolver\OptionsResolver;
-use Throwable;
 use function React\Promise\reject;
-use function React\Promise\Timer\timeout;
 
+/**
+ * Sends action requests to the Selenium Grid server (hub) and controls their async execution
+ */
 class SeleniumHubDriver implements WebDriverInterface
 {
     /**
@@ -41,6 +43,13 @@ class SeleniumHubDriver implements WebDriverInterface
     private ClientInterface $hubClient;
 
     /**
+     * Cancels a driver promise if it isn't resolved within the specified amount of time
+     *
+     * @var TimeoutInterceptor
+     */
+    private TimeoutInterceptor $timeoutInterceptor;
+
+    /**
      * Array of options for the driver
      *
      * @var array
@@ -50,38 +59,26 @@ class SeleniumHubDriver implements WebDriverInterface
     /**
      * SeleniumHubDriver constructor.
      *
-     * @param LoopInterface   $loop      The event loop reference to manage promise timeouts and other async routines
-     * @param ClientInterface $hubClient Base client implementation for sending commands to the remote hub server
-     * @param array           $options   Array of options for the driver
+     * @param LoopInterface      $loop               The event loop reference to manage promise timeouts
+     * @param ClientInterface    $hubClient          Base client implementation for sending commands to the server
+     * @param TimeoutInterceptor $timeoutInterceptor Cancels a driver promise if it isn't resolved for too long
+     * @param array              $options            Array of options for the driver
      *
      * @throws ConfigurationExceptionInterface Whenever an error has been occurred during driver configuration
      */
-    public function __construct(LoopInterface $loop, ClientInterface $hubClient, array $options = [])
-    {
+    public function __construct(
+        LoopInterface $loop,
+        ClientInterface $hubClient,
+        TimeoutInterceptor $timeoutInterceptor,
+        array $options = []
+    ) {
         $optionsResolver = new OptionsResolver();
-
-        $optionsResolver
-            ->define('command')
-            ->info('Options to control behavior of the commands, which will be executed on the remote server')
-            ->default(
-                function (OptionsResolver $requestOptionsResolver) {
-                    $requestOptionsResolver
-                        ->define('timeout')
-                        ->info(
-                            'Maximum time to wait (in seconds) for command execution '
-                            . '(do not correlate with HTTP timeouts)'
-                        )
-                        ->allowedTypes('int')
-                        ->default(30)
-                    ;
-                }
-            )
-        ;
 
         $this->_options = $optionsResolver->resolve($options);
 
-        $this->loop      = $loop;
-        $this->hubClient = $hubClient;
+        $this->loop               = $loop;
+        $this->hubClient          = $hubClient;
+        $this->timeoutInterceptor = $timeoutInterceptor;
     }
 
     /**
@@ -111,20 +108,10 @@ class SeleniumHubDriver implements WebDriverInterface
     {
         $sessionIdentifierPromise = $this->hubClient->createSession();
 
-        // applying command timeout.
-        $commandTimeoutInSeconds = $this->_options['command']['timeout'];
-
-        // global rejection handler for all internal side effects (timeout inclusive).
-        // todo: move to the separate service
-        $sessionIdentifierTimedPromise = timeout($sessionIdentifierPromise, $commandTimeoutInSeconds, $this->loop);
-
-        $sessionIdentifierTimedPromise = $sessionIdentifierTimedPromise->otherwise(
-            function (Throwable $rejectionReason) {
-                throw new RuntimeException('Unable to finish a session create command.', 0, $rejectionReason);
-            }
+        return $this->timeoutInterceptor->applyTimeout(
+            $sessionIdentifierPromise,
+            'Unable to complete a session create command.'
         );
-
-        return $sessionIdentifierTimedPromise;
     }
 
     /**

@@ -31,16 +31,16 @@ interface WebDriverInterface extends ClientInterface
      * Usage example:
      *
      * ```
-     * $navigationPromise = $webdriver->openUri('https://github.com/itnelo');
+     * $navigationPromise = $webDriver->openUri('https://github.com/itnelo');
      *
      * $elementIdentifierPromise = $navigationPromise->then(
-     *     function () use ($webdriver) {
+     *     function () use ($webDriver) {
      *         // try-catch
-     *         $timeHasComePromise = $webdriver->wait(5.0);
+     *         $timeHasComePromise = $webDriver->wait(5.0);
      *
      *         return $timeHasComePromise->then(
-     *             function () use ($webdriver) {
-     *                 return $webdriver->getElementIdentifier('sessionIdentifier', 'xpathQuery');
+     *             function () use ($webDriver) {
+     *                 return $webDriver->getElementIdentifier('sessionIdentifier', 'xpathQuery');
      *             }
      *         );
      *     }
@@ -48,9 +48,9 @@ interface WebDriverInterface extends ClientInterface
      * );
      *
      * $elementClickPromise = $elementIdentifierPromise->then(
-     *     function (string $elementIdentifier) use ($webdriver) {
+     *     function (string $elementIdentifier) use ($webDriver) {
      *         // try-catch
-     *         return $webdriver->clickElement('sessionIdentifier', $elementIdentifier);
+     *         return $webDriver->clickElement('sessionIdentifier', $elementIdentifier);
      *     }
      *     // handle rejection reason (e.g. invalid xpath or element not found error)
      * );
@@ -78,27 +78,25 @@ interface WebDriverInterface extends ClientInterface
      * Usage example:
      *
      * ```
-     * $becomeVisiblePromise = $webdriver->waitUntil(
+     * $becomeVisiblePromise = $webDriver->waitUntil(
      *     15.5,
-     *     function () use ($webdriver) {
-     *         $visibilityStatePromise = $webdriver->getElementVisibility(...);
+     *     function () use ($webDriver) {
+     *         $visibilityStatePromise = $webDriver->getElementVisibility(...);
      *
      *         return $visibilityStatePromise->then(
      *             function (bool $isVisible) {
      *                 if (!$isVisible) {
      *                     throw new RuntimeException("Not visible yet! Let's retry!");
      *                 }
-     *
-     *                 return true;
      *             }
      *         );
      *     }
      * );
      *
      * $becomeVisiblePromise->then(
-     *     function () use ($webdriver) {
+     *     function () use ($webDriver) {
      *         // try-catch
-     *         $webdriver->clickElement(...);    // sending a click command only if we are sure the target is visible.
+     *         $webDriver->clickElement(...);    // sending a click command only if we are sure the target is visible.
      *     }
      *     // handle case when the element is not visible on the page
      * );

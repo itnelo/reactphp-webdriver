@@ -43,7 +43,7 @@ interface ClientInterface
      * Usage example:
      *
      * ```
-     * $sessionIdentifierPromise = $webdriver->createSession();
+     * $sessionIdentifierPromise = $webDriver->createSession();
      *
      * $sessionIdentifierPromise->then(
      *     function (string $sessionIdentifier) {

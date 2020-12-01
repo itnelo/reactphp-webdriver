@@ -54,6 +54,7 @@ use React\EventLoop\Factory as LoopFactory;
 use React\Socket\Connector as SocketConnector;
 use React\Http\Browser;
 use Itnelo\React\WebDriver\Client\W3CClient;
+use Itnelo\React\WebDriver\Timeout\Interceptor as TimeoutInterceptor;
 use Itnelo\React\WebDriver\SeleniumHubDriver;
 
 $loop = LoopFactory::create();
@@ -82,14 +83,12 @@ $hubClient = new W3CClient(
     ]
 );
 
+$timeoutInterceptor = new TimeoutInterceptor($loop, 30);
+
 $webDriver = new SeleniumHubDriver(
     $loop,
     $hubClient,
-    [
-        'command' => [
-            'timeout' => 30,
-        ],
-    ]
+    $timeoutInterceptor
 );
 ```
 

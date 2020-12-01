@@ -16,6 +16,7 @@ declare(strict_types=1);
 namespace Itnelo\React\WebDriver;
 
 use Itnelo\React\WebDriver\Client\W3CClient;
+use Itnelo\React\WebDriver\Timeout\Interceptor as TimeoutInterceptor;
 use React\EventLoop\LoopInterface;
 use React\Http\Browser;
 use React\Socket\Connector as SocketConnector;
@@ -101,7 +102,15 @@ final class WebDriverFactory
             ->info('Options to control behavior of the commands, which will be executed on the remote server')
             ->default(
                 function (OptionsResolver $commandOptionsResolver) {
-                    $commandOptionsResolver->setDefined(['timeout']);
+                    $commandOptionsResolver
+                        ->define('timeout')
+                        ->info(
+                            'Maximum time to wait (in seconds) for command execution '
+                            . '(do not correlate with HTTP timeouts)'
+                        )
+                        ->allowedTypes('int')
+                        ->default(30)
+                    ;
                 }
             )
         ;
@@ -111,10 +120,11 @@ final class WebDriverFactory
         $socketConnector = new SocketConnector($loop, $optionsResolved['browser']);
         $httpClient      = new Browser($loop, $socketConnector);
 
-        $hubClient = new W3CClient($httpClient, ['server' => $optionsResolved['hub']]);
+        $hubClient          = new W3CClient($httpClient, ['server' => $optionsResolved['hub']]);
+        $timeoutInterceptor = new TimeoutInterceptor($loop, $optionsResolved['command']['timeout']);
 
-        $webDriverOptions = array_replace_recursive([], ['command' => $optionsResolved['command']]);
-        $webDriver        = new SeleniumHubDriver($loop, $hubClient, $webDriverOptions);
+        $webDriverOptions = [];
+        $webDriver        = new SeleniumHubDriver($loop, $hubClient, $timeoutInterceptor, $webDriverOptions);
 
         return $webDriver;
     }
