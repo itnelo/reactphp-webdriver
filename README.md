@@ -5,24 +5,27 @@ This is a direct port of [RemoteWebDriver](https://github.com/php-webdriver/php-
 logic from the [php-webdriver/webdriver](https://github.com/php-webdriver/php-webdriver) package, which utilizes [ReactPHP](https://github.com/reactphp/reactphp)
 event loop and promise API for browser interaction w/o execution flow blocking.
 
-Usage example:
+## Installation
+
+With [composer](https://getcomposer.org/download):
+
+```
+$ composer require itnelo/reactphp-webdriver:0.x@dev
+```
+
+## How to use
+
+Call a factory method to get your instance (recommended):
 
 ```php
 use React\EventLoop\Factory as LoopFactory;
-use Itnelo\React\WebDriver\Client\W3CClient;
+use Itnelo\React\WebDriver\WebDriverFactory;
 
 $loop = LoopFactory::create();
-    
-$webdriver = new W3CClient(
+
+$webDriver = WebDriverFactory::create(
     $loop,
     [
-        'server' => [
-            'host' => 'selenium-hub',
-            'port' => 4444,
-        ],
-        'command' => [
-            'timeout' => 30,
-        ],
         'browser' => [
             'tcp' => [
                 'bindto' => '192.168.56.10:0',
@@ -32,12 +35,67 @@ $webdriver = new W3CClient(
                 'verify_peer_name' => false,
             ],
         ],
+        'hub' => [
+            'host' => 'selenium-hub',
+            'port' => 4444,
+        ],
+        'command' => [
+            'timeout' => 30,
+        ],
     ]
 );
 ```
 
-See a self-documented [ClientInterface.php](src/ClientInterface.php) for the API details. Not all methods and arguments
-are ported (only the most necessary), so feel free to open an issue / make a pull request if you want more.
+Manual configuration (if you want to configure each component as a separate service, e.g. compiling a DI container
+and want to reuse existing service definitions):
+
+```php
+use React\EventLoop\Factory as LoopFactory;
+use React\Socket\Connector as SocketConnector;
+use React\Http\Browser;
+use Itnelo\React\WebDriver\Client\W3CClient;
+use Itnelo\React\WebDriver\SeleniumHubDriver;
+
+$loop = LoopFactory::create();
+
+$socketConnector = new SocketConnector(
+    $loop,
+    [
+        'tcp' => [
+            'bindto' => '192.168.56.10:0',
+        ],
+        'tls' => [
+            'verify_peer' => false,
+            'verify_peer_name' => false,
+        ],
+    ],
+);
+$browser = new Browser($loop, $socketConnector);
+
+$hubClient = new W3CClient(
+    $browser,
+    [
+        'server' => [
+            'host' => 'selenium-hub',
+            'port' => 4444,
+        ],
+    ]
+);
+
+$webDriver = new SeleniumHubDriver(
+    $loop,
+    $hubClient,
+    [
+        'command' => [
+            'timeout' => 30,
+        ],
+    ]
+);
+```
+
+See a self-documented [WebDriverInterface.php](src/WebDriverInterface.php) (and [ClientInterface.php](src/ClientInterface.php))
+for the API details. Not all methods and arguments are ported (only the most necessary), so feel free to open
+an issue / make a pull request if you want more.
 
 ## See also
 

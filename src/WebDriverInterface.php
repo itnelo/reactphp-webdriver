@@ -36,9 +36,9 @@ interface WebDriverInterface extends ClientInterface
      * $elementIdentifierPromise = $navigationPromise->then(
      *     function () use ($webdriver) {
      *         // try-catch
-     *         $delayPromise = $webdriver->wait(5.0);
+     *         $timeHasComePromise = $webdriver->wait(5.0);
      *
-     *         return $delayPromise->then(
+     *         return $timeHasComePromise->then(
      *             function () use ($webdriver) {
      *                 return $webdriver->getElementIdentifier('sessionIdentifier', 'xpathQuery');
      *             }
@@ -78,12 +78,12 @@ interface WebDriverInterface extends ClientInterface
      * Usage example:
      *
      * ```
-     * $waitUntilPromise = $webdriver->waitUntil(
+     * $becomeVisiblePromise = $webdriver->waitUntil(
      *     15.5,
      *     function () use ($webdriver) {
      *         $visibilityStatePromise = $webdriver->getElementVisibility(...);
      *
-     *         $becomeVisiblePromise = $visibilityStatePromise->then(
+     *         return $visibilityStatePromise->then(
      *             function (bool $isVisible) {
      *                 if (!$isVisible) {
      *                     throw new RuntimeException("Not visible yet! Let's retry!");
@@ -92,12 +92,10 @@ interface WebDriverInterface extends ClientInterface
      *                 return true;
      *             }
      *         );
-     *
-     *         return $becomeVisiblePromise;
      *     }
      * );
      *
-     * $waitUntilPromise->then(
+     * $becomeVisiblePromise->then(
      *     function () use ($webdriver) {
      *         // try-catch
      *         $webdriver->clickElement(...);    // sending a click command only if we are sure the target is visible.

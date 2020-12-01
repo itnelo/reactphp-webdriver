@@ -128,7 +128,7 @@ interface ClientInterface
      *
      * @return PromiseInterface<string>
      */
-    public function getUri(string $sessionIdentifier): PromiseInterface;
+    public function getCurrentUri(string $sessionIdentifier): PromiseInterface;
 
     /**
      * Returns a promise that resolves to a string, representing source code of web resource, which is opened in the
