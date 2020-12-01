@@ -17,13 +17,15 @@ namespace Itnelo\React\WebDriver\Client;
 
 use Itnelo\React\WebDriver\ClientInterface;
 use Psr\Http\Message\ResponseInterface;
+use React\EventLoop\LoopInterface;
 use React\Http\Browser;
 use React\Promise\Deferred;
 use React\Promise\PromiseInterface;
+use React\Socket\Connector as SocketConnector;
 use RuntimeException;
-use Symfony\Component\OptionsResolver\Exception\ExceptionInterface as OptionsResolverExceptionInterface;
 use Symfony\Component\OptionsResolver\OptionsResolver;
 use Throwable;
+use function React\Promise\Timer\timeout;
 
 /**
  * W3C compliant WebDriver client for Selenium Grid server (hub) that performs asynchronously.
@@ -39,13 +41,20 @@ use Throwable;
 class W3CClient implements ClientInterface
 {
     /**
+     * An event loop instance to manage an underlying browser and command timeouts
+     *
+     * @var LoopInterface
+     */
+    private LoopInterface $loop;
+
+    /**
      * Sends commands to the Selenium Grid endpoint using W3C protocol over HTTP
      *
      * @var Browser
      *
      * @see https://www.w3.org/TR/webdriver
      */
-    private Browser $httpClient;
+    private Browser $_httpClient;
 
     /**
      * Array of options for the client
@@ -61,40 +70,48 @@ class W3CClient implements ClientInterface
      *
      * ```
      * $loop = \React\EventLoop\Factory::create();
-     * $browser = new \React\Http\Browser($loop);
      *
      * $webdriver = new \Itnelo\React\WebDriver\Client\W3CClient(
-     *     $browser,
+     *     $loop,
      *     [
      *         'server' => [
      *             'host' => 'selenium-hub',
      *             'port' => 4444,
      *         ],
-     *         'request' => [
+     *         'command' => [
      *             'timeout' => 30,
+     *         ],
+     *         'browser' => [
+     *             'tcp' => [
+     *                 'bindto' => '192.168.56.10:0',
+     *             ],
+     *             'tls' => [
+     *                 'verify_peer' => false,
+     *                 'verify_peer_name' => false,
+     *             ],
      *         ],
      *     ]
      * );
      * ```
      *
-     * The "request.timeout" option here doesn't correlate with ReactPHP Browser's timeouts and will just cancel a
-     * pending promise after the specified time (in seconds); an HTTP request itself, which is handled by the ReactPHP
-     * Browser, may (or may not) be completed. Furthermore, the client can reject promise with a runtime exception if
-     * underlying browser has decided to stop waiting for the response by its own timeout settings.
+     * For all available "browser" options see \React\Socket\Connector class (will be instantiated for the underlying
+     * browser) and socket context options: https://www.php.net/manual/en/context.socket.php.
      *
-     * @param Browser $httpClient Sends commands to the Selenium Grid endpoint using W3C protocol over HTTP
-     * @param array   $options    Array of options for the client
+     * The "command.timeout" option here doesn't correlate with ReactPHP Browser's timeouts and will just cancel a
+     * pending promise after the specified time (in seconds); an HTTP request itself, which is handled by the internal
+     * ReactPHP Browser, may (or may not) be completed. Furthermore, the client can reject promise with a runtime
+     * exception if an underlying browser has decided to stop waiting for the response by its own settings.
      *
-     * @throws OptionsResolverExceptionInterface Whenever an error has been occurred during client configuration
+     * @param LoopInterface $loop    An event loop instance to manage an underlying browser and command timeouts
+     * @param array         $options Array of options for the client
      */
-    public function __construct(Browser $httpClient, array $options = [])
+    public function __construct(LoopInterface $loop, array $options = [])
     {
-        $this->httpClient = $httpClient;
-
         $optionsResolver = new OptionsResolver();
 
         $optionsResolver
             ->define('server')
+            ->info('Options for establishing a socket connection to the remote server')
             ->default(
                 function (OptionsResolver $serverOptionsResolver) {
                     $serverOptionsResolver
@@ -113,11 +130,16 @@ class W3CClient implements ClientInterface
         ;
 
         $optionsResolver
-            ->define('request')
+            ->define('command')
+            ->info('Options to control behavior of the commands, which will be executed on the remote server')
             ->default(
                 function (OptionsResolver $requestOptionsResolver) {
                     $requestOptionsResolver
                         ->define('timeout')
+                        ->info(
+                            'Maximum time to wait (in seconds) for command execution '
+                            . '(do not correlate with browser timeouts)'
+                        )
                         ->allowedTypes('int')
                         ->default(30)
                     ;
@@ -125,7 +147,22 @@ class W3CClient implements ClientInterface
             )
         ;
 
+        $optionsResolver
+            ->define('browser')
+            ->info('Options to customize a socket connector, which will be used by the internal http client')
+            ->default(
+                function (OptionsResolver $browserOptionsResolver) {
+                    $browserOptionsResolver->setDefined(['tcp', 'tls', 'unix', 'dns', 'timeout', 'happy_eyeballs']);
+                }
+            )
+        ;
+
         $this->_options = $optionsResolver->resolve($options);
+
+        $socketConnector   = new SocketConnector($loop, $this->_options['browser']);
+        $this->_httpClient = new Browser($loop, $socketConnector);
+
+        $this->loop = $loop;
     }
 
     /**
@@ -154,9 +191,10 @@ class W3CClient implements ClientInterface
         ];
 
         // todo: implement custom executable args / prefs support (omitted in the interface)
-        $requestContents = '{"capabilities":{"firstMatch":[{"browserName":"chrome","goog:chromeOptions":{"prefs":{"intl.accept_languages":"RU-ru,ru,en-US,en"},"args":["--user-data-dir=\/opt\/google\/chrome\/profiles"]}}]},"desiredCapabilities":{"browserName":"chrome","platform":"ANY","goog:chromeOptions":{"prefs":{"intl.accept_languages":"RU-ru,ru,en-US,en"},"args":["--user-data-dir=\/opt\/google\/chrome\/profiles"]}}}';
+        $requestContents =
+            '{"capabilities":{"firstMatch":[{"browserName":"chrome","goog:chromeOptions":{"prefs":{"intl.accept_languages":"RU-ru,ru,en-US,en"},"args":["--user-data-dir=\/opt\/google\/chrome\/profiles"]}}]},"desiredCapabilities":{"browserName":"chrome","platform":"ANY","goog:chromeOptions":{"prefs":{"intl.accept_languages":"RU-ru,ru,en-US,en"},"args":["--user-data-dir=\/opt\/google\/chrome\/profiles"]}}}';
 
-        $responsePromise = $this->httpClient->post($requestUri, $requestHeaders, $requestContents);
+        $responsePromise = $this->_httpClient->post($requestUri, $requestHeaders, $requestContents);
 
         $responsePromise->then(
             function (ResponseInterface $response) use ($sessionOpeningDeferred) {
@@ -190,9 +228,25 @@ class W3CClient implements ClientInterface
 
         $sessionIdentifierPromise = $sessionOpeningDeferred->promise();
 
-        // todo: apply timeout
+        // applying command timeout.
+        $commandTimeoutInSeconds = $this->_options['command']['timeout'];
 
-        return $sessionIdentifierPromise;
+        // global rejection handler for all internal side effects (timeout inclusive).
+        // todo: move to WebDriver wrapper
+        $sessionIdentifierTimedPromise = timeout($sessionIdentifierPromise, $commandTimeoutInSeconds, $this->loop);
+
+        $sessionIdentifierTimedPromise = $sessionIdentifierTimedPromise->otherwise(
+            function (Throwable $rejectionReason) use (&$responsePromise) {
+                if (method_exists($responsePromise, 'cancel')) {
+                    $responsePromise->cancel();
+                }
+                $responsePromise = null;
+
+                throw new RuntimeException('Unable to finish a session create command.', 0, $rejectionReason);
+            }
+        );
+
+        return $sessionIdentifierTimedPromise;
     }
 
     /**
