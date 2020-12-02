@@ -10,7 +10,7 @@ event loop and promise API for browser interaction w/o execution flow blocking.
 With [composer](https://getcomposer.org/download):
 
 ```
-$ composer require itnelo/reactphp-webdriver:0.x@dev
+$ composer require itnelo/reactphp-webdriver:^0.1
 ```
 
 ## How to use
