@@ -77,11 +77,11 @@ interface ClientInterface
      * Returns a promise that resolves to collection of tab identifiers (i.e. "window handles") that currently are
      * opened in the browser.
      *
-     * Resulting collection represents a Traversable<string> or string[].
+     * Resulting collection represents a string[].
      *
      * @param string $sessionIdentifier Session identifier for Selenium Grid server (hub)
      *
-     * @return PromiseInterface<iterable>
+     * @return PromiseInterface<array>
      */
     public function getTabIdentifiers(string $sessionIdentifier): PromiseInterface;
 
