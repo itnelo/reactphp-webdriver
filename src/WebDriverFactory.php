@@ -120,6 +120,10 @@ final class WebDriverFactory
         $socketConnector = new SocketConnector($loop, $optionsResolved['browser']);
         $httpClient      = new Browser($loop, $socketConnector);
 
+        // Selenium hub sends some valid responses with 5xx status codes, so we need to disable eager promise rejection
+        // to properly parse error message and other details from the body.
+        $httpClient = $httpClient->withRejectErrorResponse(false);
+
         $hubClient          = new W3CClient($httpClient, ['server' => $optionsResolved['hub']]);
         $timeoutInterceptor = new TimeoutInterceptor($loop, $optionsResolved['command']['timeout']);
 

@@ -62,7 +62,9 @@ class W3CClient implements ClientInterface
      *
      * ```
      * $loop = \React\EventLoop\Factory::create();
+     *
      * $browser = new \React\Http\Browser($loop);
+     * $browser = $browser->withRejectErrorResponse(false);
      *
      * $hubClient = new \Itnelo\React\WebDriver\Client\W3CClient(
      *     $browser,
@@ -149,8 +151,8 @@ class W3CClient implements ClientInterface
                     preg_match('/sessionid[":\s]+([a-z\d]{32})/Ui', $responseBody, $matches);
 
                     if (!isset($matches[1])) {
-                        // todo: locate an error message or set it as "undefined error".
-                        throw new RuntimeException('Unable to locate session identifier in the response.');
+                        // todo: locate an error message or set it as "undefined error"
+                        throw new RuntimeException('Unable to locate a session identifier in the response.');
                     }
 
                     $sessionIdentifier = $matches[1];
@@ -192,9 +194,54 @@ class W3CClient implements ClientInterface
      */
     public function getTabIdentifiers(string $sessionIdentifier): PromiseInterface
     {
-        // TODO: Implement getTabIdentifiers() method.
+        $tabLookupDeferred = new Deferred();
 
-        return reject(new RuntimeException('Not implemented.'));
+        $requestUri = sprintf(
+            'http://%s:%d/wd/hub/session/%s/window/handles',
+            $this->_options['server']['host'],
+            $this->_options['server']['port'],
+            $sessionIdentifier
+        );
+
+        $requestHeaders = [
+            'Content-Type' => 'application/json; charset=UTF-8',
+        ];
+
+        $responsePromise = $this->httpClient->get($requestUri, $requestHeaders);
+
+        $responsePromise->then(
+            function (ResponseInterface $response) use ($tabLookupDeferred) {
+                try {
+                    $responseBody     = (string) $response->getBody();
+                    $bodyDeserialized = json_decode($responseBody, true);
+
+                    if (!array_key_exists('value', $bodyDeserialized) || !is_array($bodyDeserialized['value'])) {
+                        // todo: locate an error message or set it as "undefined error"
+                        throw new RuntimeException('Unable to locate tab identifiers in the response.');
+                    }
+
+                    $tabIdentifiers = $bodyDeserialized['value'];
+                    $tabLookupDeferred->resolve($tabIdentifiers);
+                } catch (Throwable $exception) {
+                    $reason = new RuntimeException(
+                        'Unable to open a selenium hub session (response deserialization).',
+                        0,
+                        $exception
+                    );
+
+                    $tabLookupDeferred->reject($reason);
+                }
+            },
+            function (Throwable $rejectionReason) use ($tabLookupDeferred) {
+                $reason = new RuntimeException('Unable to open a selenium hub session (request).', 0, $rejectionReason);
+
+                $tabLookupDeferred->reject($reason);
+            }
+        );
+
+        $tabIdentifierListPromise = $tabLookupDeferred->promise();
+
+        return $tabIdentifierListPromise;
     }
 
     /**

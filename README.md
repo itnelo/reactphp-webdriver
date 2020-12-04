@@ -72,6 +72,7 @@ $socketConnector = new SocketConnector(
     ],
 );
 $browser = new Browser($loop, $socketConnector);
+$browser = $browser->withRejectErrorResponse(false);
 
 $hubClient = new W3CClient(
     $browser,
