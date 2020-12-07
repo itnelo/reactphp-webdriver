@@ -22,7 +22,7 @@ use RuntimeException;
 use Symfony\Component\OptionsResolver\Exception\ExceptionInterface as ConfigurationExceptionInterface;
 use Symfony\Component\OptionsResolver\OptionsResolver;
 use function React\Promise\reject;
-use function React\Promise\resolve;
+use function React\Promise\Timer\resolve;
 
 /**
  * Sends action requests to the Selenium Grid server (hub) and controls their async execution
@@ -87,9 +87,9 @@ class SeleniumHubDriver implements WebDriverInterface
      */
     public function wait(float $time): PromiseInterface
     {
-        // TODO: Implement wait() method.
+        $idlePromise = resolve($time, $this->loop);
 
-        return reject(new RuntimeException('Not implemented.'));
+        return $idlePromise;
     }
 
     /**
@@ -203,9 +203,12 @@ class SeleniumHubDriver implements WebDriverInterface
      */
     public function getElementIdentifier(string $sessionIdentifier, string $xpathQuery): PromiseInterface
     {
-        // TODO: Implement getElementIdentifier() method.
+        $elementIdentifierPromise = $this->hubClient->getElementIdentifier($sessionIdentifier, $xpathQuery);
 
-        return reject(new RuntimeException('Not implemented.'));
+        return $this->timeoutInterceptor->applyTimeout(
+            $elementIdentifierPromise,
+            'Unable to complete a get element identifier command.'
+        );
     }
 
     /**

@@ -293,6 +293,8 @@ class W3CClient implements ClientInterface
                     if ('{"value":null}' !== $responseBody) {
                         throw new RuntimeException('URI navigation is not confirmed.');
                     }
+
+                    return null;
                 }
             )
             ->then(
@@ -331,9 +333,50 @@ class W3CClient implements ClientInterface
      */
     public function getElementIdentifier(string $sessionIdentifier, string $xpathQuery): PromiseInterface
     {
-        // TODO: Implement getElementIdentifier() method.
+        $requestUri = sprintf(
+            'http://%s:%d/wd/hub/session/%s/element',
+            $this->_options['server']['host'],
+            $this->_options['server']['port'],
+            $sessionIdentifier
+        );
 
-        return reject(new RuntimeException('Not implemented.'));
+        $requestHeaders = [
+            'Content-Type' => 'application/json; charset=UTF-8',
+        ];
+
+        $requestContents = json_encode(['using' => 'xpath', 'value' => $xpathQuery]);
+
+        $responsePromise = $this->httpClient->post($requestUri, $requestHeaders, $requestContents);
+
+        $elementIdentifierPromise = $responsePromise
+            ->then(
+                function (ResponseInterface $response) {
+                    $responseBody = (string) $response->getBody();
+                    preg_match(
+                        '/(element(?:-[a-z\d]{4}){4}[a-z\d]{8})[":\s]+([a-z\d]{8}(?:-[a-z\d]{4}){4}[a-z\d]{8})/Ui',
+                        $responseBody,
+                        $matches
+                    );
+
+                    if (!isset($matches[1], $matches[2])) {
+                        // todo: locate an error message or set it as "undefined error"
+                        throw new RuntimeException('Unable to locate an element identifier in the response.');
+                    }
+
+                    $elementIdentifier = [$matches[1] => $matches[2]];
+
+                    return $elementIdentifier;
+                }
+            )
+            ->then(
+                null,
+                function (Throwable $rejectionReason) {
+                    throw new RuntimeException('Unable to get an element identifier (request).', 0, $rejectionReason);
+                }
+            )
+        ;
+
+        return $elementIdentifierPromise;
     }
 
     /**
