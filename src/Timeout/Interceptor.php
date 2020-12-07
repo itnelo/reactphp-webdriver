@@ -17,6 +17,7 @@ namespace Itnelo\React\WebDriver\Timeout;
 
 use React\EventLoop\LoopInterface;
 use React\Promise\PromiseInterface;
+use React\Promise\Timer\TimeoutException;
 use RuntimeException;
 use Throwable;
 use function React\Promise\Timer\timeout;
@@ -69,7 +70,14 @@ class Interceptor
         $timedPromise = $timedPromise->then(
             null,
             function (Throwable $rejectionReason) use ($rejectionMessage) {
-                throw new RuntimeException($rejectionMessage, 0, $rejectionReason);
+                if (!$rejectionReason instanceof TimeoutException) {
+                    throw $rejectionReason;
+                }
+
+                $promiseTimerExceptionMessage = $rejectionReason->getMessage();
+                $timeoutRejectionMessage      = sprintf('%s %s.', $rejectionMessage, $promiseTimerExceptionMessage);
+
+                throw new RuntimeException($timeoutRejectionMessage);
             }
         );
 

@@ -22,6 +22,7 @@ use RuntimeException;
 use Symfony\Component\OptionsResolver\Exception\ExceptionInterface as ConfigurationExceptionInterface;
 use Symfony\Component\OptionsResolver\OptionsResolver;
 use function React\Promise\reject;
+use function React\Promise\resolve;
 
 /**
  * Sends action requests to the Selenium Grid server (hub) and controls their async execution
@@ -172,9 +173,9 @@ class SeleniumHubDriver implements WebDriverInterface
      */
     public function openUri(string $sessionIdentifier, string $uri): PromiseInterface
     {
-        // TODO: Implement openUri() method.
+        $navigationPromise = $this->hubClient->openUri($sessionIdentifier, $uri);
 
-        return reject(new RuntimeException('Not implemented.'));
+        return $this->timeoutInterceptor->applyTimeout($navigationPromise, 'Unable to complete an open URI command.');
     }
 
     /**

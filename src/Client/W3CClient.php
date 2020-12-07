@@ -269,9 +269,41 @@ class W3CClient implements ClientInterface
      */
     public function openUri(string $sessionIdentifier, string $uri): PromiseInterface
     {
-        // TODO: Implement openUri() method.
+        $requestUri = sprintf(
+            'http://%s:%d/wd/hub/session/%s/url',
+            $this->_options['server']['host'],
+            $this->_options['server']['port'],
+            $sessionIdentifier
+        );
 
-        return reject(new RuntimeException('Not implemented.'));
+        $requestHeaders = [
+            'Content-Type' => 'application/json; charset=UTF-8',
+        ];
+
+        $requestContents = json_encode(['url' => $uri]);
+
+        $responsePromise = $this->httpClient->post($requestUri, $requestHeaders, $requestContents);
+
+        $navigationPromise = $responsePromise
+            ->then(
+                function (ResponseInterface $response) {
+                    $responseBody = (string) $response->getBody();
+
+                    // todo: locate an error message or set it as "undefined error"
+                    if ('{"value":null}' !== $responseBody) {
+                        throw new RuntimeException('URI navigation is not confirmed.');
+                    }
+                }
+            )
+            ->then(
+                null,
+                function (Throwable $rejectionReason) {
+                    throw new RuntimeException('Unable to open an URI (request).', 0, $rejectionReason);
+                }
+            )
+        ;
+
+        return $navigationPromise;
     }
 
     /**

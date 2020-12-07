@@ -20,7 +20,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `WebDriverFactory` as a shortcut for driver instantiation.
 - `Timeout\Interceptor` to prevent unresolved (hanging) driver promises, whenever it fails
 (using [reactphp/promise-timer](https://github.com/reactphp/promise-timer)).
-- `ClientInterface::createSession()` method implementation (opening Selenium hub session to interact with remote
+- `ClientInterface::createSession()` method implementation (opening a Selenium hub session to interact with remote
 browser instance).
 
 This early development version doesn't yet contain full implementation for the introduced `WebDriverInterface`, only
