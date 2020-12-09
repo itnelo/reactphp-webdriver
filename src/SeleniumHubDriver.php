@@ -17,10 +17,13 @@ namespace Itnelo\React\WebDriver;
 
 use Itnelo\React\WebDriver\Timeout\Interceptor as TimeoutInterceptor;
 use React\EventLoop\LoopInterface;
+use React\Promise\Deferred;
 use React\Promise\PromiseInterface;
+use React\Stream\WritableResourceStream;
 use RuntimeException;
 use Symfony\Component\OptionsResolver\Exception\ExceptionInterface as ConfigurationExceptionInterface;
 use Symfony\Component\OptionsResolver\OptionsResolver;
+use Throwable;
 use function React\Promise\reject;
 use function React\Promise\Timer\resolve;
 
@@ -80,26 +83,6 @@ class SeleniumHubDriver implements WebDriverInterface
         $this->loop               = $loop;
         $this->hubClient          = $hubClient;
         $this->timeoutInterceptor = $timeoutInterceptor;
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    public function wait(float $time): PromiseInterface
-    {
-        $idlePromise = resolve($time, $this->loop);
-
-        return $idlePromise;
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    public function waitUntil(float $time, callable $conditionMetCallback): PromiseInterface
-    {
-        // TODO: Implement waitUntil() method.
-
-        return reject(new RuntimeException('Not implemented.'));
     }
 
     /**
@@ -294,10 +277,89 @@ class SeleniumHubDriver implements WebDriverInterface
     /**
      * {@inheritDoc}
      */
-    public function getScreenshot(string $sessionIdentifier): PromiseInterface
+    public function wait(float $time): PromiseInterface
     {
-        // TODO: Implement getScreenshot() method.
+        $idlePromise = resolve($time, $this->loop);
+
+        return $idlePromise;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    public function waitUntil(float $time, callable $conditionMetCallback): PromiseInterface
+    {
+        // TODO: Implement waitUntil() method.
 
         return reject(new RuntimeException('Not implemented.'));
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    public function getScreenshot(string $sessionIdentifier): PromiseInterface
+    {
+        $screenshotPromise = $this->hubClient->getScreenshot($sessionIdentifier);
+
+        return $this->timeoutInterceptor->applyTimeout(
+            $screenshotPromise,
+            'Unable to complete a get screenshot command.'
+        );
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    public function saveScreenshot(string $sessionIdentifier, string $filePath): PromiseInterface
+    {
+        $savingDeferred = new Deferred();
+
+        $screenshotPromise = $this->hubClient->getScreenshot($sessionIdentifier);
+
+        $screenshotPromise
+            ->then(
+                function (string $imageContents) use ($savingDeferred, $filePath) {
+                    $fileResource = fopen($filePath, 'w');
+                    $writeStream  = new WritableResourceStream($fileResource, $this->loop);
+
+                    $writeStream->end($imageContents);
+
+                    $writeStream->on(
+                        'drain',
+                        function () use ($savingDeferred, $writeStream) {
+                            // explicitly removing all listeners, because we don't have a contract with guarantees that
+                            // this handler will be triggered once, see https://github.com/reactphp/stream#drain-event.
+                            $writeStream->removeAllListeners('drain');
+
+                            $savingDeferred->resolve(null);
+                        }
+                    );
+
+                    $writeStream->on(
+                        'error',
+                        function (Throwable $exception) use ($savingDeferred) {
+                            $reason = new RuntimeException('Unable to save a screenshot (stream).', 0, $exception);
+
+                            $savingDeferred->reject($reason);
+                        }
+                    );
+                }
+            )
+            ->then(
+                null,
+                function (Throwable $rejectionReason) use ($savingDeferred) {
+                    $reason = new RuntimeException('Unable to save a screenshot.', 0, $rejectionReason);
+
+                    $savingDeferred->reject($reason);
+                }
+            )
+        ;
+
+        $saveConfirmationPromise = $savingDeferred->promise();
+
+        return $this->timeoutInterceptor->applyTimeout(
+            $saveConfirmationPromise,
+            'Unable to complete a save screenshot command.'
+        );
     }
 }

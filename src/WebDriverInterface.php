@@ -109,4 +109,15 @@ interface WebDriverInterface extends ClientInterface
      * @return PromiseInterface<null>
      */
     public function waitUntil(float $time, callable $conditionMetCallback): PromiseInterface;
+
+    /**
+     * Returns a promise that will be resolved if a screenshot is successfully received and saved using the specified
+     * {filePath}, rejection reason with error message will be provided otherwise.
+     *
+     * @param string $sessionIdentifier Session identifier for Selenium Grid server (hub)
+     * @param string $filePath          Path where a screenshot image will be saved
+     *
+     * @return PromiseInterface<null>
+     */
+    public function saveScreenshot(string $sessionIdentifier, string $filePath): PromiseInterface;
 }

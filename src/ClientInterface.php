@@ -110,7 +110,7 @@ interface ClientInterface
 
     /**
      * Returns a promise that will be resolved when the remote WebDriver service confirms URI navigation within
-     * currently active (focused) tab ({@link getActiveTabIdentifier()})
+     * currently active (focused) tab ({@link getActiveTabIdentifier()}).
      *
      * @param string $sessionIdentifier Session identifier for Selenium Grid server (hub)
      * @param string $uri               Website URL or any other resource identifier, to open in the active (focused)
@@ -193,8 +193,10 @@ interface ClientInterface
      * Returns a promise that will be resolved when the remote WebDriver service confirms element click operation
      * against active browser tab.
      *
-     * Note: if target element is a link, it may trigger an implicit tab(s) creation. In such case you need to take into
-     * consideration potentially new list of window handles for the current session (see {@link getTabIdentifiers()}).
+     * Note: if target element is a link, it may trigger an implicit tab(s) creation. In such case you need to take
+     * into consideration potentially new list of window handles for the current session (see {@link
+     * getTabIdentifiers()}). The remote webdriver service WILL NOT automatically perform tab switch operation if
+     * a command implicitly triggers new tab.
      *
      * @param string $sessionIdentifier Session identifier for Selenium Grid server (hub)
      * @param array  $elementIdentifier An internal WebDriver handle that refers to the element on the page

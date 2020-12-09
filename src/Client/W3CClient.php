@@ -212,15 +212,8 @@ class W3CClient implements ClientInterface
         $responsePromise->then(
             function (ResponseInterface $response) use ($tabLookupDeferred) {
                 try {
-                    $responseBody     = (string) $response->getBody();
-                    $bodyDeserialized = json_decode($responseBody, true);
+                    $tabIdentifiers = $this->deserializeResponse($response);
 
-                    if (!array_key_exists('value', $bodyDeserialized) || !is_array($bodyDeserialized['value'])) {
-                        // todo: locate an error message or set it as "undefined error"
-                        throw new RuntimeException('Unable to locate tab identifiers in the response.');
-                    }
-
-                    $tabIdentifiers = $bodyDeserialized['value'];
                     $tabLookupDeferred->resolve($tabIdentifiers);
                 } catch (Throwable $exception) {
                     $reason = new RuntimeException(
@@ -295,7 +288,7 @@ class W3CClient implements ClientInterface
             ->then(
                 null,
                 function (Throwable $rejectionReason) {
-                    throw new RuntimeException('Unable to open an URI (request).', 0, $rejectionReason);
+                    throw new RuntimeException('Unable to open an URI.', 0, $rejectionReason);
                 }
             )
         ;
@@ -366,7 +359,7 @@ class W3CClient implements ClientInterface
             ->then(
                 null,
                 function (Throwable $rejectionReason) {
-                    throw new RuntimeException('Unable to get an element identifier (request).', 0, $rejectionReason);
+                    throw new RuntimeException('Unable to get an element identifier.', 0, $rejectionReason);
                 }
             )
         ;
@@ -456,7 +449,7 @@ class W3CClient implements ClientInterface
             ->then(
                 null,
                 function (Throwable $rejectionReason) {
-                    throw new RuntimeException('Unable to confirm mouse move action (request).', 0, $rejectionReason);
+                    throw new RuntimeException('Unable to confirm mouse move action.', 0, $rejectionReason);
                 }
             )
         ;
@@ -493,7 +486,7 @@ class W3CClient implements ClientInterface
             ->then(
                 null,
                 function (Throwable $rejectionReason) {
-                    throw new RuntimeException('Unable to confirm mouse click action (request).', 0, $rejectionReason);
+                    throw new RuntimeException('Unable to confirm mouse click action.', 0, $rejectionReason);
                 }
             )
         ;
@@ -506,9 +499,37 @@ class W3CClient implements ClientInterface
      */
     public function getScreenshot(string $sessionIdentifier): PromiseInterface
     {
-        // TODO: Implement getScreenshot() method.
+        $requestUri = sprintf(
+            'http://%s:%d/wd/hub/session/%s/screenshot',
+            $this->_options['server']['host'],
+            $this->_options['server']['port'],
+            $sessionIdentifier
+        );
 
-        return reject(new RuntimeException('Not implemented.'));
+        $requestHeaders = [
+            'Content-Type' => 'application/json; charset=UTF-8',
+        ];
+
+        $responsePromise = $this->httpClient->get($requestUri, $requestHeaders);
+
+        $imageContentsPromise = $responsePromise
+            ->then(
+                function (ResponseInterface $response) {
+                    $imageContentsEncoded = $this->deserializeResponse($response);
+                    $imageContents        = base64_decode($imageContentsEncoded);
+
+                    return $imageContents;
+                }
+            )
+            ->then(
+                null,
+                function (Throwable $rejectionReason) {
+                    throw new RuntimeException('Unable to get a screenshot.', 0, $rejectionReason);
+                }
+            )
+        ;
+
+        return $imageContentsPromise;
     }
 
     /**
@@ -556,23 +577,43 @@ class W3CClient implements ClientInterface
     /**
      * Ensures that a related action is properly executed (confirmed) by the remote server, triggers an error otherwise.
      *
-     * Is used when no specific context to check is required (some methods will use more advanced confirmation checks
-     * instead this "default").
+     * It is used when no specific context is required to confirm successful command execution (some methods will use
+     * more advanced confirmation checks instead of this "default").
      *
      * @param ResponseInterface $response     PSR-7 response message from the Selenium hub with action results
      * @param string            $errorMessage Will be used if an error is registered during confirmation check
      *
      * @return void
      *
-     * @throws RuntimeException Whenever an error has occurred during confirmation check for a remote action
+     * @throws RuntimeException Whenever an error has been occurred during confirmation check for a remote action
      */
     private function onCommandConfirmation(ResponseInterface $response, string $errorMessage): void
     {
-        $responseBody = (string) $response->getBody();
+        $responseValueNode = $this->deserializeResponse($response);
 
         // todo: locate an error message or set it as "undefined error"
-        if ('{"value":null}' !== $responseBody) {
+        if (null !== $responseValueNode) {
             throw new RuntimeException($errorMessage);
         }
+    }
+
+    /**
+     * Returns a "value" node contents, which will be extracted from the PSR-7 response message
+     *
+     * @param ResponseInterface $response PSR-7 response message from the Selenium hub with action results
+     *
+     * @return mixed
+     */
+    private function deserializeResponse(ResponseInterface $response)
+    {
+        $responseBody     = (string) $response->getBody();
+        $bodyDeserialized = json_decode($responseBody, true);
+
+        if (!array_key_exists('value', $bodyDeserialized)) {
+            // todo: locate an error message or set it as "undefined error"
+            throw new RuntimeException('Unable to locate "value" node (response deserialization).');
+        }
+
+        return $bodyDeserialized['value'];
     }
 }
