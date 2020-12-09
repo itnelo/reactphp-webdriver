@@ -264,9 +264,18 @@ class SeleniumHubDriver implements WebDriverInterface
         int $moveDuration = 100,
         array $startingPoint = null
     ): PromiseInterface {
-        // TODO: Implement mouseMove() method.
+        $moveConfirmationPromise = $this->hubClient->mouseMove(
+            $sessionIdentifier,
+            $offsetX,
+            $offsetY,
+            $moveDuration,
+            $startingPoint
+        );
 
-        return reject(new RuntimeException('Not implemented.'));
+        return $this->timeoutInterceptor->applyTimeout(
+            $moveConfirmationPromise,
+            'Unable to complete a mouse move command.'
+        );
     }
 
     /**
@@ -274,9 +283,12 @@ class SeleniumHubDriver implements WebDriverInterface
      */
     public function mouseLeftClick(string $sessionIdentifier): PromiseInterface
     {
-        // TODO: Implement mouseLeftClick() method.
+        $clickConfirmationPromise = $this->hubClient->mouseLeftClick($sessionIdentifier);
 
-        return reject(new RuntimeException('Not implemented.'));
+        return $this->timeoutInterceptor->applyTimeout(
+            $clickConfirmationPromise,
+            'Unable to complete a mouse click command.'
+        );
     }
 
     /**

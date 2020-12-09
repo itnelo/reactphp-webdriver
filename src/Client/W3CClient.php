@@ -287,12 +287,7 @@ class W3CClient implements ClientInterface
         $navigationPromise = $responsePromise
             ->then(
                 function (ResponseInterface $response) {
-                    $responseBody = (string) $response->getBody();
-
-                    // todo: locate an error message or set it as "undefined error"
-                    if ('{"value":null}' !== $responseBody) {
-                        throw new RuntimeException('URI navigation is not confirmed.');
-                    }
+                    $this->onCommandConfirmation($response, 'URI navigation is not confirmed.');
 
                     return null;
                 }
@@ -432,9 +427,41 @@ class W3CClient implements ClientInterface
         int $moveDuration = 100,
         array $startingPoint = null
     ): PromiseInterface {
-        // TODO: Implement mouseMove() method.
+        if (is_array($startingPoint)) {
+            $actionOrigin = $startingPoint;
+        } else {
+            $actionOrigin = 'pointer';
+        }
 
-        return reject(new RuntimeException('Not implemented.'));
+        $mouseActions = [
+            [
+                'type'     => 'pointerMove',
+                'origin'   => $actionOrigin,
+                'x'        => $offsetX,
+                'y'        => $offsetY,
+                'duration' => $moveDuration,
+            ],
+        ];
+
+        $responsePromise = $this->requestMouseActions($sessionIdentifier, $mouseActions);
+
+        $moveConfirmationPromise = $responsePromise
+            ->then(
+                function (ResponseInterface $response) {
+                    $this->onCommandConfirmation($response, 'Mouse move command is not confirmed.');
+
+                    return null;
+                }
+            )
+            ->then(
+                null,
+                function (Throwable $rejectionReason) {
+                    throw new RuntimeException('Unable to confirm mouse move action (request).', 0, $rejectionReason);
+                }
+            )
+        ;
+
+        return $moveConfirmationPromise;
     }
 
     /**
@@ -442,9 +469,36 @@ class W3CClient implements ClientInterface
      */
     public function mouseLeftClick(string $sessionIdentifier): PromiseInterface
     {
-        // TODO: Implement mouseLeftClick() method.
+        $mouseActions = [
+            [
+                'type'   => 'pointerDown',
+                'button' => 0,
+            ],
+            [
+                'type'   => 'pointerUp',
+                'button' => 0,
+            ],
+        ];
 
-        return reject(new RuntimeException('Not implemented.'));
+        $responsePromise = $this->requestMouseActions($sessionIdentifier, $mouseActions);
+
+        $clickConfirmationPromise = $responsePromise
+            ->then(
+                function (ResponseInterface $response) {
+                    $this->onCommandConfirmation($response, 'Mouse click command is not confirmed.');
+
+                    return null;
+                }
+            )
+            ->then(
+                null,
+                function (Throwable $rejectionReason) {
+                    throw new RuntimeException('Unable to confirm mouse click action (request).', 0, $rejectionReason);
+                }
+            )
+        ;
+
+        return $clickConfirmationPromise;
     }
 
     /**
@@ -455,5 +509,70 @@ class W3CClient implements ClientInterface
         // TODO: Implement getScreenshot() method.
 
         return reject(new RuntimeException('Not implemented.'));
+    }
+
+    /**
+     * Initializes a request to execute a sequence of mouse-specific actions in the remote browser
+     *
+     * @param string $sessionIdentifier Session identifier for Selenium Grid server (hub)
+     * @param array  $mouseActions      A data structure that describes a sequence of actions to be performed by the
+     *                                  internal pointer with type "mouse"
+     *
+     * @return PromiseInterface<ResponseInterface>
+     */
+    private function requestMouseActions(string $sessionIdentifier, array $mouseActions): PromiseInterface
+    {
+        $requestUri = sprintf(
+            'http://%s:%d/wd/hub/session/%s/actions',
+            $this->_options['server']['host'],
+            $this->_options['server']['port'],
+            $sessionIdentifier
+        );
+
+        $requestHeaders = [
+            'Content-Type' => 'application/json; charset=UTF-8',
+        ];
+
+        $requestContents = json_encode(
+            [
+                'actions' => [
+                    [
+                        'type'       => 'pointer',
+                        'id'         => 'mouse',
+                        'parameters' => [
+                            'pointerType' => 'mouse',
+                        ],
+                        'actions'    => $mouseActions,
+                    ],
+                ],
+            ]
+        );
+
+        $responsePromise = $this->httpClient->post($requestUri, $requestHeaders, $requestContents);
+
+        return $responsePromise;
+    }
+
+    /**
+     * Ensures that a related action is properly executed (confirmed) by the remote server, triggers an error otherwise.
+     *
+     * Is used when no specific context to check is required (some methods will use more advanced confirmation checks
+     * instead this "default").
+     *
+     * @param ResponseInterface $response     PSR-7 response message from the Selenium hub with action results
+     * @param string            $errorMessage Will be used if an error is registered during confirmation check
+     *
+     * @return void
+     *
+     * @throws RuntimeException Whenever an error has occurred during confirmation check for a remote action
+     */
+    private function onCommandConfirmation(ResponseInterface $response, string $errorMessage): void
+    {
+        $responseBody = (string) $response->getBody();
+
+        // todo: locate an error message or set it as "undefined error"
+        if ('{"value":null}' !== $responseBody) {
+            throw new RuntimeException($errorMessage);
+        }
     }
 }
