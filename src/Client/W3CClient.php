@@ -279,9 +279,38 @@ class W3CClient implements ClientInterface
      */
     public function setActiveTab(string $sessionIdentifier, string $tabIdentifier): PromiseInterface
     {
-        // TODO: Implement setActiveTab() method.
+        $requestUri = sprintf(
+            'http://%s:%d/wd/hub/session/%s/window',
+            $this->_options['server']['host'],
+            $this->_options['server']['port'],
+            $sessionIdentifier
+        );
 
-        return reject(new RuntimeException('Not implemented.'));
+        $requestHeaders = [
+            'Content-Type' => 'application/json; charset=UTF-8',
+        ];
+
+        $requestContents = json_encode(['handle' => $tabIdentifier]);
+
+        $responsePromise = $this->httpClient->post($requestUri, $requestHeaders, $requestContents);
+
+        $switchConfirmationPromise = $responsePromise
+            ->then(
+                function (ResponseInterface $response) {
+                    $this->onCommandConfirmation($response, 'Tab switch command is not confirmed.');
+
+                    return null;
+                }
+            )
+            ->then(
+                null,
+                function (Throwable $rejectionReason) {
+                    throw new RuntimeException('Unable to focus a tab.', 0, $rejectionReason);
+                }
+            )
+        ;
+
+        return $switchConfirmationPromise;
     }
 
     /**
@@ -365,9 +394,36 @@ class W3CClient implements ClientInterface
      */
     public function getSource(string $sessionIdentifier): PromiseInterface
     {
-        // TODO: Implement getSource() method.
+        $requestUri = sprintf(
+            'http://%s:%d/wd/hub/session/%s/source',
+            $this->_options['server']['host'],
+            $this->_options['server']['port'],
+            $sessionIdentifier
+        );
 
-        return reject(new RuntimeException('Not implemented.'));
+        $requestHeaders = [
+            'Content-Type' => 'application/json; charset=UTF-8',
+        ];
+
+        $responsePromise = $this->httpClient->get($requestUri, $requestHeaders);
+
+        $sourceCodePromise = $responsePromise
+            ->then(
+                function (ResponseInterface $response) {
+                    $sourceCode = $this->deserializeResponse($response);
+
+                    return $sourceCode;
+                }
+            )
+            ->then(
+                null,
+                function (Throwable $rejectionReason) {
+                    throw new RuntimeException('Unable to get source code of the web resource.', 0, $rejectionReason);
+                }
+            )
+        ;
+
+        return $sourceCodePromise;
     }
 
     /**

@@ -149,9 +149,12 @@ class SeleniumHubDriver implements WebDriverInterface
      */
     public function setActiveTab(string $sessionIdentifier, string $tabIdentifier): PromiseInterface
     {
-        // TODO: Implement setActiveTab() method.
+        $switchConfirmationPromise = $this->hubClient->setActiveTab($sessionIdentifier, $tabIdentifier);
 
-        return reject(new RuntimeException('Not implemented.'));
+        return $this->timeoutInterceptor->applyTimeout(
+            $switchConfirmationPromise,
+            'Unable to complete a set active tab command.'
+        );
     }
 
     /**
@@ -182,9 +185,9 @@ class SeleniumHubDriver implements WebDriverInterface
      */
     public function getSource(string $sessionIdentifier): PromiseInterface
     {
-        // TODO: Implement getSource() method.
+        $sourceCodePromise = $this->hubClient->getSource($sessionIdentifier);
 
-        return reject(new RuntimeException('Not implemented.'));
+        return $this->timeoutInterceptor->applyTimeout($sourceCodePromise, 'Unable to complete a get source command.');
     }
 
     /**
