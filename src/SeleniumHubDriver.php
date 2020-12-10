@@ -136,9 +136,12 @@ class SeleniumHubDriver implements WebDriverInterface
      */
     public function getActiveTabIdentifier(string $sessionIdentifier): PromiseInterface
     {
-        // TODO: Implement getActiveTabIdentifier() method.
+        $tabIdentifierPromise = $this->hubClient->getActiveTabIdentifier($sessionIdentifier);
 
-        return reject(new RuntimeException('Not implemented.'));
+        return $this->timeoutInterceptor->applyTimeout(
+            $tabIdentifierPromise,
+            'Unable to complete a get active tab command.'
+        );
     }
 
     /**
@@ -166,9 +169,12 @@ class SeleniumHubDriver implements WebDriverInterface
      */
     public function getCurrentUri(string $sessionIdentifier): PromiseInterface
     {
-        // TODO: Implement getCurrentUri() method.
+        $currentUriPromise = $this->hubClient->getCurrentUri($sessionIdentifier);
 
-        return reject(new RuntimeException('Not implemented.'));
+        return $this->timeoutInterceptor->applyTimeout(
+            $currentUriPromise,
+            'Unable to complete a get current uri command.'
+        );
     }
 
     /**

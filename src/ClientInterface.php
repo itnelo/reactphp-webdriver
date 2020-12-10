@@ -110,7 +110,7 @@ interface ClientInterface
 
     /**
      * Returns a promise that will be resolved when the remote WebDriver service confirms URI navigation within
-     * currently active (focused) tab ({@link getActiveTabIdentifier()}).
+     * currently active (focused) tab ({@link getActiveTabIdentifier()})
      *
      * @param string $sessionIdentifier Session identifier for Selenium Grid server (hub)
      * @param string $uri               Website URL or any other resource identifier, to open in the active (focused)

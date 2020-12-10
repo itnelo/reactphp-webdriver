@@ -217,7 +217,7 @@ class W3CClient implements ClientInterface
                     $tabLookupDeferred->resolve($tabIdentifiers);
                 } catch (Throwable $exception) {
                     $reason = new RuntimeException(
-                        'Unable to open a selenium hub session (response deserialization).',
+                        'Unable to get tab identifiers (response deserialization).',
                         0,
                         $exception
                     );
@@ -226,15 +226,15 @@ class W3CClient implements ClientInterface
                 }
             },
             function (Throwable $rejectionReason) use ($tabLookupDeferred) {
-                $reason = new RuntimeException('Unable to open a selenium hub session (request).', 0, $rejectionReason);
+                $reason = new RuntimeException('Unable to get tab identifiers (request).', 0, $rejectionReason);
 
                 $tabLookupDeferred->reject($reason);
             }
         );
 
-        $tabIdentifierListPromise = $tabLookupDeferred->promise();
+        $identifierListPromise = $tabLookupDeferred->promise();
 
-        return $tabIdentifierListPromise;
+        return $identifierListPromise;
     }
 
     /**
@@ -242,9 +242,36 @@ class W3CClient implements ClientInterface
      */
     public function getActiveTabIdentifier(string $sessionIdentifier): PromiseInterface
     {
-        // TODO: Implement getActiveTabIdentifier() method.
+        $requestUri = sprintf(
+            'http://%s:%d/wd/hub/session/%s/window',
+            $this->_options['server']['host'],
+            $this->_options['server']['port'],
+            $sessionIdentifier
+        );
 
-        return reject(new RuntimeException('Not implemented.'));
+        $requestHeaders = [
+            'Content-Type' => 'application/json; charset=UTF-8',
+        ];
+
+        $responsePromise = $this->httpClient->get($requestUri, $requestHeaders);
+
+        $tabIdentifierPromise = $responsePromise
+            ->then(
+                function (ResponseInterface $response) {
+                    $tabIdentifier = $this->deserializeResponse($response);
+
+                    return $tabIdentifier;
+                }
+            )
+            ->then(
+                null,
+                function (Throwable $rejectionReason) {
+                    throw new RuntimeException('Unable to get an identifier for the active tab.', 0, $rejectionReason);
+                }
+            )
+        ;
+
+        return $tabIdentifierPromise;
     }
 
     /**
@@ -301,9 +328,36 @@ class W3CClient implements ClientInterface
      */
     public function getCurrentUri(string $sessionIdentifier): PromiseInterface
     {
-        // TODO: Implement getUri() method.
+        $requestUri = sprintf(
+            'http://%s:%d/wd/hub/session/%s/url',
+            $this->_options['server']['host'],
+            $this->_options['server']['port'],
+            $sessionIdentifier
+        );
 
-        return reject(new RuntimeException('Not implemented.'));
+        $requestHeaders = [
+            'Content-Type' => 'application/json; charset=UTF-8',
+        ];
+
+        $responsePromise = $this->httpClient->get($requestUri, $requestHeaders);
+
+        $currentUriPromise = $responsePromise
+            ->then(
+                function (ResponseInterface $response) {
+                    $uriCurrent = $this->deserializeResponse($response);
+
+                    return $uriCurrent;
+                }
+            )
+            ->then(
+                null,
+                function (Throwable $rejectionReason) {
+                    throw new RuntimeException('Unable to get a current URI.', 0, $rejectionReason);
+                }
+            )
+        ;
+
+        return $currentUriPromise;
     }
 
     /**
