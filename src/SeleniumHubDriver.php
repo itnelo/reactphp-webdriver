@@ -218,9 +218,12 @@ class SeleniumHubDriver implements WebDriverInterface
      */
     public function getElementVisibility(string $sessionIdentifier, array $elementIdentifier): PromiseInterface
     {
-        // TODO: Implement getElementVisibility() method.
+        $visibilityStatusPromise = $this->hubClient->getElementVisibility($sessionIdentifier, $elementIdentifier);
 
-        return reject(new RuntimeException('Not implemented.'));
+        return $this->timeoutInterceptor->applyTimeout(
+            $visibilityStatusPromise,
+            'Unable to complete a get element visibility command.'
+        );
     }
 
     /**
@@ -241,9 +244,16 @@ class SeleniumHubDriver implements WebDriverInterface
         array $elementIdentifier,
         string $keySequence
     ): PromiseInterface {
-        // TODO: Implement keypressElement() method.
+        $keypressConfirmationPromise = $this->hubClient->keypressElement(
+            $sessionIdentifier,
+            $elementIdentifier,
+            $keySequence
+        );
 
-        return reject(new RuntimeException('Not implemented.'));
+        return $this->timeoutInterceptor->applyTimeout(
+            $keypressConfirmationPromise,
+            'Unable to complete a keypress element command.'
+        );
     }
 
     /**

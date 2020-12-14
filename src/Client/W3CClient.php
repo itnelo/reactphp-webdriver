@@ -492,9 +492,43 @@ class W3CClient implements ClientInterface
      */
     public function getElementVisibility(string $sessionIdentifier, array $elementIdentifier): PromiseInterface
     {
-        // TODO: Implement getElementVisibility() method.
+        // todo: safer checks (or hide internals behind a transfer object/contract)
+        $elementHandle = array_key_first($elementIdentifier);
+        if (!isset($elementIdentifier[$elementHandle])) {
+            throw new RuntimeException('Unexpected format for the element identifier.');
+        }
 
-        return reject(new RuntimeException('Not implemented.'));
+        $requestUri = sprintf(
+            'http://%s:%d/wd/hub/session/%s/element/%s/displayed',
+            $this->_options['server']['host'],
+            $this->_options['server']['port'],
+            $sessionIdentifier,
+            $elementIdentifier[$elementHandle]
+        );
+
+        $requestHeaders = [
+            'Content-Type' => 'application/json; charset=UTF-8',
+        ];
+
+        $responsePromise = $this->httpClient->get($requestUri, $requestHeaders);
+
+        $visibilityStatusPromise = $responsePromise
+            ->then(
+                function (ResponseInterface $response) {
+                    $visibilityStatus = $this->deserializeResponse($response);
+
+                    return $visibilityStatus;
+                }
+            )
+            ->then(
+                null,
+                function (Throwable $rejectionReason) {
+                    throw new RuntimeException('Unable to get visibility status for the element.', 0, $rejectionReason);
+                }
+            )
+        ;
+
+        return $visibilityStatusPromise;
     }
 
     /**
@@ -515,9 +549,45 @@ class W3CClient implements ClientInterface
         array $elementIdentifier,
         string $keySequence
     ): PromiseInterface {
-        // TODO: Implement keypressElement() method.
+        // todo: safer checks (or hide internals behind a transfer object/contract)
+        $elementHandle = array_key_first($elementIdentifier);
+        if (!is_string($elementHandle)) {
+            throw new RuntimeException('Unexpected format for the element identifier.');
+        }
 
-        return reject(new RuntimeException('Not implemented.'));
+        $requestUri = sprintf(
+            'http://%s:%d/wd/hub/session/%s/element/%s/value',
+            $this->_options['server']['host'],
+            $this->_options['server']['port'],
+            $sessionIdentifier,
+            $elementIdentifier[$elementHandle]
+        );
+
+        $requestHeaders = [
+            'Content-Type' => 'application/json; charset=UTF-8',
+        ];
+
+        $requestContents = json_encode(['text' => $keySequence]);
+
+        $responsePromise = $this->httpClient->post($requestUri, $requestHeaders, $requestContents);
+
+        $keypressConfirmationPromise = $responsePromise
+            ->then(
+                function (ResponseInterface $response) {
+                    $this->onCommandConfirmation($response, 'Keypress command is not confirmed.');
+
+                    return null;
+                }
+            )
+            ->then(
+                null,
+                function (Throwable $rejectionReason) {
+                    throw new RuntimeException('Unable to apply keyboard keys to the element.', 0, $rejectionReason);
+                }
+            )
+        ;
+
+        return $keypressConfirmationPromise;
     }
 
     /**
