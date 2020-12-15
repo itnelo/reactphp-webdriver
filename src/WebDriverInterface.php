@@ -66,20 +66,22 @@ interface WebDriverInterface extends ClientInterface
      *
      * @return PromiseInterface<null>
      */
-    public function wait(float $time): PromiseInterface;
+    public function wait(float $time = 30.0): PromiseInterface;
 
     /**
-     * Returns a promise that will be resolved when a given condition is met within specified amount of time and
+     * Returns a promise that will be resolved, when a given condition is met within specified amount of time, and
      * rejected, otherwise.
      *
      * A condition callback must return an instance of PromiseInterface. Whenever that promise becomes rejected, driver
      * will try to get a new promise from the callback, until it reaches a given timeout for retry attempts.
      *
+     * Note: waitUntil itself doesn't apply any timeouts for a single result promise (check iteration), the user-side
+     * MUST control any kind of promise timeouts for the condition callback, which is supplied to the method.
+     *
      * Usage example:
      *
      * ```
      * $becomeVisiblePromise = $webDriver->waitUntil(
-     *     15.5,
      *     function () use ($webDriver) {
      *         $visibilityStatePromise = $webDriver->getElementVisibility(...);
      *
@@ -90,7 +92,8 @@ interface WebDriverInterface extends ClientInterface
      *                 }
      *             }
      *         );
-     *     }
+     *     },
+     *     15.5
      * );
      *
      * $becomeVisiblePromise->then(
@@ -102,13 +105,13 @@ interface WebDriverInterface extends ClientInterface
      * );
      * ```
      *
-     * @param float    $time                 Time (in seconds) to wait for successfully resolved promise from the
-     *                                       condition callback
      * @param callable $conditionMetCallback A condition to be met, as a callback
+     * @param float    $time                 Time (in seconds) to wait for successfully resolved promise from the
+     *                                       condition callback (minimum: 0.5)
      *
      * @return PromiseInterface<null>
      */
-    public function waitUntil(float $time, callable $conditionMetCallback): PromiseInterface;
+    public function waitUntil(callable $conditionMetCallback, float $time = 30.0): PromiseInterface;
 
     /**
      * Returns a promise that will be resolved if a screenshot is successfully received and saved using the specified

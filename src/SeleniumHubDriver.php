@@ -15,6 +15,7 @@ declare(strict_types=1);
 
 namespace Itnelo\React\WebDriver;
 
+use Itnelo\React\WebDriver\Routine\Condition\CheckRoutine as ConditionCheckRoutine;
 use Itnelo\React\WebDriver\Timeout\Interceptor as TimeoutInterceptor;
 use React\EventLoop\LoopInterface;
 use React\Promise\Deferred;
@@ -103,7 +104,7 @@ class SeleniumHubDriver implements WebDriverInterface
      */
     public function getSessionIdentifiers(): PromiseInterface
     {
-        // TODO: Implement getSessionIdentifiers() method.
+        // todo: implementation
 
         return reject(new RuntimeException('Not implemented.'));
     }
@@ -113,7 +114,7 @@ class SeleniumHubDriver implements WebDriverInterface
      */
     public function removeSession(string $sessionIdentifier): PromiseInterface
     {
-        // TODO: Implement removeSession() method.
+        // todo: implementation
 
         return reject(new RuntimeException('Not implemented.'));
     }
@@ -234,7 +235,7 @@ class SeleniumHubDriver implements WebDriverInterface
      */
     public function clickElement(string $sessionIdentifier, array $elementIdentifier): PromiseInterface
     {
-        // TODO: Implement clickElement() method.
+        // todo: implementation
 
         return reject(new RuntimeException('Not implemented.'));
     }
@@ -299,7 +300,7 @@ class SeleniumHubDriver implements WebDriverInterface
     /**
      * {@inheritDoc}
      */
-    public function wait(float $time): PromiseInterface
+    public function wait(float $time = 30.0): PromiseInterface
     {
         $idlePromise = resolve($time, $this->loop);
 
@@ -309,11 +310,15 @@ class SeleniumHubDriver implements WebDriverInterface
     /**
      * {@inheritDoc}
      */
-    public function waitUntil(float $time, callable $conditionMetCallback): PromiseInterface
+    public function waitUntil(callable $conditionMetCallback, float $time = 30.0): PromiseInterface
     {
-        // TODO: Implement waitUntil() method.
+        $timeNormalized = max(0.5, $time);
 
-        return reject(new RuntimeException('Not implemented.'));
+        // todo: probably, should be redesigned, to reduce amount of "new" calls
+        $timeoutInterceptor = new TimeoutInterceptor($this->loop, $timeNormalized);
+        $checkRoutine       = new ConditionCheckRoutine($this->loop, $timeoutInterceptor);
+
+        return $checkRoutine->run($conditionMetCallback);
     }
 
     /**

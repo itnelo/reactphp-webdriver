@@ -116,7 +116,7 @@ class W3CClient implements ClientInterface
      */
     public function getSessionIdentifiers(): PromiseInterface
     {
-        // todo
+        // todo: implementation
 
         return reject(new RuntimeException('Not implemented.'));
     }
@@ -184,7 +184,7 @@ class W3CClient implements ClientInterface
      */
     public function removeSession(string $sessionIdentifier): PromiseInterface
     {
-        // TODO: Implement removeSession() method.
+        // todo: implementation
 
         return reject(new RuntimeException('Not implemented.'));
     }
@@ -555,7 +555,7 @@ class W3CClient implements ClientInterface
      */
     public function clickElement(string $sessionIdentifier, array $elementIdentifier): PromiseInterface
     {
-        // TODO: Implement clickElement() method.
+        // todo: implementation
 
         return reject(new RuntimeException('Not implemented.'));
     }
@@ -774,6 +774,33 @@ class W3CClient implements ClientInterface
     }
 
     /**
+     * Returns an element identifier, which has to be extracted from the response message (a surgical approach)
+     *
+     * @param ResponseInterface $response PSR-7 response message from the Selenium hub with action results
+     *
+     * @return array
+     */
+    private function extractElementIdentifier(ResponseInterface $response): array
+    {
+        $responseBody = (string) $response->getBody();
+
+        preg_match(
+            '/(element(?:-[a-z\d]{4}){4}[a-z\d]{8})[":\s]+([a-z\d]{8}(?:-[a-z\d]{4}){4}[a-z\d]{8})/Ui',
+            $responseBody,
+            $matches
+        );
+
+        if (!isset($matches[1], $matches[2])) {
+            // todo: locate an error message or set it as "undefined error"
+            throw new RuntimeException('Unable to locate element identifier parts in the response.');
+        }
+
+        $elementIdentifier = [$matches[1] => $matches[2]];
+
+        return $elementIdentifier;
+    }
+
+    /**
      * Ensures that a related action is properly executed (confirmed) by the remote server, triggers an error otherwise.
      *
      * It is used when no specific context is required to confirm successful command execution (some methods will use
@@ -814,32 +841,5 @@ class W3CClient implements ClientInterface
         }
 
         return $bodyDeserialized['value'];
-    }
-
-    /**
-     * Returns an element identifier, which has to be extracted from the response message (a surgical approach)
-     *
-     * @param ResponseInterface $response PSR-7 response message from the Selenium hub with action results
-     *
-     * @return array
-     */
-    private function extractElementIdentifier(ResponseInterface $response): array
-    {
-        $responseBody = (string) $response->getBody();
-
-        preg_match(
-            '/(element(?:-[a-z\d]{4}){4}[a-z\d]{8})[":\s]+([a-z\d]{8}(?:-[a-z\d]{4}){4}[a-z\d]{8})/Ui',
-            $responseBody,
-            $matches
-        );
-
-        if (!isset($matches[1], $matches[2])) {
-            // todo: locate an error message or set it as "undefined error"
-            throw new RuntimeException('Unable to locate element identifier parts in the response.');
-        }
-
-        $elementIdentifier = [$matches[1] => $matches[2]];
-
-        return $elementIdentifier;
     }
 }
