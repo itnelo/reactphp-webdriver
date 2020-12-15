@@ -174,7 +174,7 @@ interface ClientInterface
      *
      * @return PromiseInterface<array>
      */
-    public function getActiveElement(string $sessionIdentifier): PromiseInterface;
+    public function getActiveElementIdentifier(string $sessionIdentifier): PromiseInterface;
 
     /**
      * Returns a promise that resolves to a boolean, representing element visibility status on the currently active

@@ -449,19 +449,7 @@ class W3CClient implements ClientInterface
         $elementIdentifierPromise = $responsePromise
             ->then(
                 function (ResponseInterface $response) {
-                    $responseBody = (string) $response->getBody();
-                    preg_match(
-                        '/(element(?:-[a-z\d]{4}){4}[a-z\d]{8})[":\s]+([a-z\d]{8}(?:-[a-z\d]{4}){4}[a-z\d]{8})/Ui',
-                        $responseBody,
-                        $matches
-                    );
-
-                    if (!isset($matches[1], $matches[2])) {
-                        // todo: locate an error message or set it as "undefined error"
-                        throw new RuntimeException('Unable to locate an element identifier in the response.');
-                    }
-
-                    $elementIdentifier = [$matches[1] => $matches[2]];
+                    $elementIdentifier = $this->extractElementIdentifier($response);
 
                     return $elementIdentifier;
                 }
@@ -480,11 +468,42 @@ class W3CClient implements ClientInterface
     /**
      * {@inheritDoc}
      */
-    public function getActiveElement(string $sessionIdentifier): PromiseInterface
+    public function getActiveElementIdentifier(string $sessionIdentifier): PromiseInterface
     {
-        // TODO: Implement getActiveElement() method.
+        $requestUri = sprintf(
+            'http://%s:%d/wd/hub/session/%s/element/active',
+            $this->_options['server']['host'],
+            $this->_options['server']['port'],
+            $sessionIdentifier
+        );
 
-        return reject(new RuntimeException('Not implemented.'));
+        $requestHeaders = [
+            'Content-Type' => 'application/json; charset=UTF-8',
+        ];
+
+        $responsePromise = $this->httpClient->get($requestUri, $requestHeaders);
+
+        $elementIdentifierPromise = $responsePromise
+            ->then(
+                function (ResponseInterface $response) {
+                    $elementIdentifier = $this->extractElementIdentifier($response);
+
+                    return $elementIdentifier;
+                }
+            )
+            ->then(
+                null,
+                function (Throwable $rejectionReason) {
+                    throw new RuntimeException(
+                        'Unable to get an identifier of the active element.',
+                        0,
+                        $rejectionReason
+                    );
+                }
+            )
+        ;
+
+        return $elementIdentifierPromise;
     }
 
     /**
@@ -494,7 +513,7 @@ class W3CClient implements ClientInterface
     {
         // todo: safer checks (or hide internals behind a transfer object/contract)
         $elementHandle = array_key_first($elementIdentifier);
-        if (!isset($elementIdentifier[$elementHandle])) {
+        if (!is_string($elementHandle)) {
             throw new RuntimeException('Unexpected format for the element identifier.');
         }
 
@@ -795,5 +814,32 @@ class W3CClient implements ClientInterface
         }
 
         return $bodyDeserialized['value'];
+    }
+
+    /**
+     * Returns an element identifier, which has to be extracted from the response message (a surgical approach)
+     *
+     * @param ResponseInterface $response PSR-7 response message from the Selenium hub with action results
+     *
+     * @return array
+     */
+    private function extractElementIdentifier(ResponseInterface $response): array
+    {
+        $responseBody = (string) $response->getBody();
+
+        preg_match(
+            '/(element(?:-[a-z\d]{4}){4}[a-z\d]{8})[":\s]+([a-z\d]{8}(?:-[a-z\d]{4}){4}[a-z\d]{8})/Ui',
+            $responseBody,
+            $matches
+        );
+
+        if (!isset($matches[1], $matches[2])) {
+            // todo: locate an error message or set it as "undefined error"
+            throw new RuntimeException('Unable to locate element identifier parts in the response.');
+        }
+
+        $elementIdentifier = [$matches[1] => $matches[2]];
+
+        return $elementIdentifier;
     }
 }

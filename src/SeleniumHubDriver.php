@@ -206,11 +206,14 @@ class SeleniumHubDriver implements WebDriverInterface
     /**
      * {@inheritDoc}
      */
-    public function getActiveElement(string $sessionIdentifier): PromiseInterface
+    public function getActiveElementIdentifier(string $sessionIdentifier): PromiseInterface
     {
-        // TODO: Implement getActiveElement() method.
+        $elementIdentifierPromise = $this->hubClient->getActiveElementIdentifier($sessionIdentifier);
 
-        return reject(new RuntimeException('Not implemented.'));
+        return $this->timeoutInterceptor->applyTimeout(
+            $elementIdentifierPromise,
+            'Unable to complete a get active element identifier command.'
+        );
     }
 
     /**
