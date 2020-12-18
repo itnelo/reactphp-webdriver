@@ -23,7 +23,7 @@
     "minimum-stability": "stable",
     "require": {
         "php": ">=7.4",
-        "react/http": "^1.1",
+        "react/http": "^1.2",
         "react/promise": "^2.8",
         "react/promise-timer": "^1.6",
         "react/stream": "^1.1",

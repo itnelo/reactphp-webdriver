@@ -5,6 +5,23 @@ This is a direct port of [RemoteWebDriver](https://github.com/php-webdriver/php-
 logic from the [php-webdriver/webdriver](https://github.com/php-webdriver/php-webdriver) package, which utilizes [ReactPHP](https://github.com/reactphp/reactphp)
 event loop and promise API for browser interaction w/o execution flow blocking.
 
+**Selenium WebDriver** is a software that is used to manipulate browsers from the code (primarily, for testing and web scraping).
+You can find more here: [https://selenium.dev](https://selenium.dev).
+
+This PHP client sends async HTTP requests to the [Grid](https://www.selenium.dev/documentation/en/grid). It is a central
+endpoint for commands, a bridge between your code and browser instances. See
+[SeleniumHQ/docker-selenium](https://github.com/SeleniumHQ/docker-selenium) to get your own remote browser (or a cluster).
+
+Enjoy!
+
+## Requirements
+
+- **PHP 7.4** or higher.
+- ReactPHP v1 (http **^1**, stream **^1**).
+- Symfony conflicts: 5.1 (or newer) environments are preferred; the package uses (and will use) some components from
+there, and their code / version constraints may need a review, to include a wider range of supported environments
+(otherwise, you need to adjust your platform).
+
 ## Installation
 
 With [composer](https://getcomposer.org/download):

@@ -75,14 +75,14 @@ final class CheckRoutine
     }
 
     /**
-     * Runs a routine logic in the loop timer and returns a promise, which will be resolved when the condition is met
+     * Runs routine logic in the loop timer and returns a promise, which will be resolved when the condition is met
      *
      * @param callable $conditionMetCallback A condition to be met, as a callback
      * @param float    $checkInterval        The interval for condition checks, in seconds
      *
      * @return PromiseInterface<null>
      *
-     * @throws RuntimeException Whenever a routine is already is the running state
+     * @throws RuntimeException Whenever the routine is already in the running state
      */
     public function run(callable $conditionMetCallback, float $checkInterval = 0.5): PromiseInterface
     {
