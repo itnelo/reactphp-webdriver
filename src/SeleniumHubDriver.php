@@ -15,13 +15,18 @@ declare(strict_types=1);
 
 namespace Itnelo\React\WebDriver;
 
+use Itnelo\React\WebDriver\Routine\Condition\CheckRoutine as ConditionCheckRoutine;
 use Itnelo\React\WebDriver\Timeout\Interceptor as TimeoutInterceptor;
 use React\EventLoop\LoopInterface;
+use React\Promise\Deferred;
 use React\Promise\PromiseInterface;
+use React\Stream\WritableResourceStream;
 use RuntimeException;
 use Symfony\Component\OptionsResolver\Exception\ExceptionInterface as ConfigurationExceptionInterface;
 use Symfony\Component\OptionsResolver\OptionsResolver;
+use Throwable;
 use function React\Promise\reject;
+use function React\Promise\Timer\resolve;
 
 /**
  * Sends action requests to the Selenium Grid server (hub) and controls their async execution
@@ -84,26 +89,6 @@ class SeleniumHubDriver implements WebDriverInterface
     /**
      * {@inheritDoc}
      */
-    public function wait(float $time): PromiseInterface
-    {
-        // TODO: Implement wait() method.
-
-        return reject(new RuntimeException('Not implemented.'));
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    public function waitUntil(float $time, callable $conditionMetCallback): PromiseInterface
-    {
-        // TODO: Implement waitUntil() method.
-
-        return reject(new RuntimeException('Not implemented.'));
-    }
-
-    /**
-     * {@inheritDoc}
-     */
     public function createSession(): PromiseInterface
     {
         $sessionIdentifierPromise = $this->hubClient->createSession();
@@ -119,7 +104,7 @@ class SeleniumHubDriver implements WebDriverInterface
      */
     public function getSessionIdentifiers(): PromiseInterface
     {
-        // TODO: Implement getSessionIdentifiers() method.
+        // todo: implementation
 
         return reject(new RuntimeException('Not implemented.'));
     }
@@ -129,7 +114,7 @@ class SeleniumHubDriver implements WebDriverInterface
      */
     public function removeSession(string $sessionIdentifier): PromiseInterface
     {
-        // TODO: Implement removeSession() method.
+        // todo: implementation
 
         return reject(new RuntimeException('Not implemented.'));
     }
@@ -139,9 +124,12 @@ class SeleniumHubDriver implements WebDriverInterface
      */
     public function getTabIdentifiers(string $sessionIdentifier): PromiseInterface
     {
-        // TODO: Implement getTabIdentifiers() method.
+        $sessionIdentifierPromise = $this->hubClient->getTabIdentifiers($sessionIdentifier);
 
-        return reject(new RuntimeException('Not implemented.'));
+        return $this->timeoutInterceptor->applyTimeout(
+            $sessionIdentifierPromise,
+            'Unable to complete a tab lookup command.'
+        );
     }
 
     /**
@@ -149,9 +137,12 @@ class SeleniumHubDriver implements WebDriverInterface
      */
     public function getActiveTabIdentifier(string $sessionIdentifier): PromiseInterface
     {
-        // TODO: Implement getActiveTabIdentifier() method.
+        $tabIdentifierPromise = $this->hubClient->getActiveTabIdentifier($sessionIdentifier);
 
-        return reject(new RuntimeException('Not implemented.'));
+        return $this->timeoutInterceptor->applyTimeout(
+            $tabIdentifierPromise,
+            'Unable to complete a get active tab command.'
+        );
     }
 
     /**
@@ -159,9 +150,12 @@ class SeleniumHubDriver implements WebDriverInterface
      */
     public function setActiveTab(string $sessionIdentifier, string $tabIdentifier): PromiseInterface
     {
-        // TODO: Implement setActiveTab() method.
+        $switchConfirmationPromise = $this->hubClient->setActiveTab($sessionIdentifier, $tabIdentifier);
 
-        return reject(new RuntimeException('Not implemented.'));
+        return $this->timeoutInterceptor->applyTimeout(
+            $switchConfirmationPromise,
+            'Unable to complete a set active tab command.'
+        );
     }
 
     /**
@@ -169,9 +163,9 @@ class SeleniumHubDriver implements WebDriverInterface
      */
     public function openUri(string $sessionIdentifier, string $uri): PromiseInterface
     {
-        // TODO: Implement openUri() method.
+        $navigationPromise = $this->hubClient->openUri($sessionIdentifier, $uri);
 
-        return reject(new RuntimeException('Not implemented.'));
+        return $this->timeoutInterceptor->applyTimeout($navigationPromise, 'Unable to complete an open URI command.');
     }
 
     /**
@@ -179,9 +173,12 @@ class SeleniumHubDriver implements WebDriverInterface
      */
     public function getCurrentUri(string $sessionIdentifier): PromiseInterface
     {
-        // TODO: Implement getCurrentUri() method.
+        $currentUriPromise = $this->hubClient->getCurrentUri($sessionIdentifier);
 
-        return reject(new RuntimeException('Not implemented.'));
+        return $this->timeoutInterceptor->applyTimeout(
+            $currentUriPromise,
+            'Unable to complete a get current uri command.'
+        );
     }
 
     /**
@@ -189,9 +186,9 @@ class SeleniumHubDriver implements WebDriverInterface
      */
     public function getSource(string $sessionIdentifier): PromiseInterface
     {
-        // TODO: Implement getSource() method.
+        $sourceCodePromise = $this->hubClient->getSource($sessionIdentifier);
 
-        return reject(new RuntimeException('Not implemented.'));
+        return $this->timeoutInterceptor->applyTimeout($sourceCodePromise, 'Unable to complete a get source command.');
     }
 
     /**
@@ -199,19 +196,25 @@ class SeleniumHubDriver implements WebDriverInterface
      */
     public function getElementIdentifier(string $sessionIdentifier, string $xpathQuery): PromiseInterface
     {
-        // TODO: Implement getElementIdentifier() method.
+        $elementIdentifierPromise = $this->hubClient->getElementIdentifier($sessionIdentifier, $xpathQuery);
 
-        return reject(new RuntimeException('Not implemented.'));
+        return $this->timeoutInterceptor->applyTimeout(
+            $elementIdentifierPromise,
+            'Unable to complete a get element identifier command.'
+        );
     }
 
     /**
      * {@inheritDoc}
      */
-    public function getActiveElement(string $sessionIdentifier): PromiseInterface
+    public function getActiveElementIdentifier(string $sessionIdentifier): PromiseInterface
     {
-        // TODO: Implement getActiveElement() method.
+        $elementIdentifierPromise = $this->hubClient->getActiveElementIdentifier($sessionIdentifier);
 
-        return reject(new RuntimeException('Not implemented.'));
+        return $this->timeoutInterceptor->applyTimeout(
+            $elementIdentifierPromise,
+            'Unable to complete a get active element identifier command.'
+        );
     }
 
     /**
@@ -219,9 +222,12 @@ class SeleniumHubDriver implements WebDriverInterface
      */
     public function getElementVisibility(string $sessionIdentifier, array $elementIdentifier): PromiseInterface
     {
-        // TODO: Implement getElementVisibility() method.
+        $visibilityStatusPromise = $this->hubClient->getElementVisibility($sessionIdentifier, $elementIdentifier);
 
-        return reject(new RuntimeException('Not implemented.'));
+        return $this->timeoutInterceptor->applyTimeout(
+            $visibilityStatusPromise,
+            'Unable to complete a get element visibility command.'
+        );
     }
 
     /**
@@ -229,7 +235,7 @@ class SeleniumHubDriver implements WebDriverInterface
      */
     public function clickElement(string $sessionIdentifier, array $elementIdentifier): PromiseInterface
     {
-        // TODO: Implement clickElement() method.
+        // todo: implementation
 
         return reject(new RuntimeException('Not implemented.'));
     }
@@ -242,9 +248,16 @@ class SeleniumHubDriver implements WebDriverInterface
         array $elementIdentifier,
         string $keySequence
     ): PromiseInterface {
-        // TODO: Implement keypressElement() method.
+        $keypressConfirmationPromise = $this->hubClient->keypressElement(
+            $sessionIdentifier,
+            $elementIdentifier,
+            $keySequence
+        );
 
-        return reject(new RuntimeException('Not implemented.'));
+        return $this->timeoutInterceptor->applyTimeout(
+            $keypressConfirmationPromise,
+            'Unable to complete a keypress element command.'
+        );
     }
 
     /**
@@ -257,9 +270,18 @@ class SeleniumHubDriver implements WebDriverInterface
         int $moveDuration = 100,
         array $startingPoint = null
     ): PromiseInterface {
-        // TODO: Implement mouseMove() method.
+        $moveConfirmationPromise = $this->hubClient->mouseMove(
+            $sessionIdentifier,
+            $offsetX,
+            $offsetY,
+            $moveDuration,
+            $startingPoint
+        );
 
-        return reject(new RuntimeException('Not implemented.'));
+        return $this->timeoutInterceptor->applyTimeout(
+            $moveConfirmationPromise,
+            'Unable to complete a mouse move command.'
+        );
     }
 
     /**
@@ -267,9 +289,36 @@ class SeleniumHubDriver implements WebDriverInterface
      */
     public function mouseLeftClick(string $sessionIdentifier): PromiseInterface
     {
-        // TODO: Implement mouseLeftClick() method.
+        $clickConfirmationPromise = $this->hubClient->mouseLeftClick($sessionIdentifier);
 
-        return reject(new RuntimeException('Not implemented.'));
+        return $this->timeoutInterceptor->applyTimeout(
+            $clickConfirmationPromise,
+            'Unable to complete a mouse click command.'
+        );
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    public function wait(float $time = 30.0): PromiseInterface
+    {
+        $idlePromise = resolve($time, $this->loop);
+
+        return $idlePromise;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    public function waitUntil(callable $conditionMetCallback, float $time = 30.0): PromiseInterface
+    {
+        $timeNormalized = max(0.5, $time);
+
+        // todo: probably, should be redesigned, to reduce amount of "new" calls
+        $timeoutInterceptor = new TimeoutInterceptor($this->loop, $timeNormalized);
+        $checkRoutine       = new ConditionCheckRoutine($this->loop, $timeoutInterceptor);
+
+        return $checkRoutine->run($conditionMetCallback);
     }
 
     /**
@@ -277,8 +326,67 @@ class SeleniumHubDriver implements WebDriverInterface
      */
     public function getScreenshot(string $sessionIdentifier): PromiseInterface
     {
-        // TODO: Implement getScreenshot() method.
+        $screenshotPromise = $this->hubClient->getScreenshot($sessionIdentifier);
 
-        return reject(new RuntimeException('Not implemented.'));
+        return $this->timeoutInterceptor->applyTimeout(
+            $screenshotPromise,
+            'Unable to complete a get screenshot command.'
+        );
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    public function saveScreenshot(string $sessionIdentifier, string $filePath): PromiseInterface
+    {
+        $savingDeferred = new Deferred();
+
+        $screenshotPromise = $this->hubClient->getScreenshot($sessionIdentifier);
+
+        $screenshotPromise
+            ->then(
+                function (string $imageContents) use ($savingDeferred, $filePath) {
+                    $fileResource = fopen($filePath, 'w');
+                    $writeStream  = new WritableResourceStream($fileResource, $this->loop);
+
+                    $writeStream->end($imageContents);
+
+                    $writeStream->on(
+                        'drain',
+                        function () use ($savingDeferred, $writeStream) {
+                            // explicitly removing all listeners, because we don't have a contract with guarantees that
+                            // this handler will be triggered once, see https://github.com/reactphp/stream#drain-event.
+                            $writeStream->removeAllListeners('drain');
+
+                            $savingDeferred->resolve(null);
+                        }
+                    );
+
+                    $writeStream->on(
+                        'error',
+                        function (Throwable $exception) use ($savingDeferred) {
+                            $reason = new RuntimeException('Unable to save a screenshot (stream).', 0, $exception);
+
+                            $savingDeferred->reject($reason);
+                        }
+                    );
+                }
+            )
+            ->then(
+                null,
+                function (Throwable $rejectionReason) use ($savingDeferred) {
+                    $reason = new RuntimeException('Unable to save a screenshot.', 0, $rejectionReason);
+
+                    $savingDeferred->reject($reason);
+                }
+            )
+        ;
+
+        $saveConfirmationPromise = $savingDeferred->promise();
+
+        return $this->timeoutInterceptor->applyTimeout(
+            $saveConfirmationPromise,
+            'Unable to complete a save screenshot command.'
+        );
     }
 }

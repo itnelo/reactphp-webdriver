@@ -10,22 +10,73 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - No changes yet.
 
+## [0.2.0] - 2020-12-18
+### Added
+
+- `ClientInterface::getTabIdentifiers()` method implementation (reading a list of tabs, which are opened in the
+browser).
+- Implementations for the `ClientInterface::getActiveTabIdentifier()` and `ClientInterface::setActiveTab()` commands,
+to determine which of the tabs is currently "focused" and to open (focus) a specific one.
+- `ClientInterface::openUri()` and `ClientInterface::getCurrentUri()` implementations, to open a web page
+in the current browser tab and read an URI from the address bar.
+- `ClientInterface::getSource()` for acquiring source code of the web resource that is opened in the active (focused)
+browser tab (view-source action).
+- `ClientInterface::getElementIdentifier()` to get an internal WebDriver handle of the specific element on the page.
+- `ClientInterface::getActiveElementIdentifier()` to get an internal handle of the currently focused element.
+- `ClientInterface::getElementVisibility()` to check if the target is visible on the page.
+- `ClientInterface::mouseMove()` and `ClientInterface::mouseLeftClick()` to perform the most common mouse actions in
+the browser window.
+- `ClientInterface::keypressElement()` to send keyboard keys to the element on the page.
+- `ClientInterface::getScreenshot()` and a `WebDriverInterface::saveScreenshot()` shortcut implementation, to capture
+a screen state of the remote browser instance.
+- `WebDriverInterface::wait()` and `WebDriverInterface::waitUntil()` to make delays and conditional checks
+(waiting for element visibility, etc.).
+- README: a "Requirements" block, description improvements.
+
+### Changed
+- `Timeout\Interceptor` is now raising a single exception with both method-specific message and a timeout context.
+
+### Fixed
+- Interface fixes and a minor redesign for some signatures.
+
+This version brings an async variant for most methods (no tests yet), which were defined by the
+`WebDriverInterface` and `ClientInterface`, to communicate with a remote Selenium WebDriver service in non-blocking
+mode, except: `getSessionIdentifiers`, `removeSession` and `clickElement` commands (the last one can be supplanted
+by the `mouseLeftClick`, in combination with the `mouseMove` action).
+
+At this moment, `ClientInterface::createSession()` is able to send only a hardcoded set of capabilities (settings
+for the executable file and profile preferences) to launch a browser instance (will be patched in the later versions):
+
+```
+{
+    "browserName": "chrome",
+    "goog:chromeOptions": {
+        "args": [
+            "--user-data-dir=\u002fopt\u002fgoogle\u002fchrome\u002fprofiles"
+        ],
+        "prefs": {
+            "intl.accept_languages": "RU-ru,ru,en-US,en"
+        }
+    }
+}
+``` 
+
 ## [0.1.0] (core design) - 2020-12-02
 ### Added
 
 - `WebDriverInterface` and low-level `ClientInterface` to communicate with
 [Selenium Grid](https://www.selenium.dev/documentation/en/grid) server asynchronously, using the centralized
 [event loop](https://github.com/reactphp/event-loop) and [promise API](https://github.com/reactphp/promise).
-- `SeleniumHubDriver` and `Client\W3Client` stubs for W3C compliant webdriver implementation.
+- `SeleniumHubDriver` and `Client\W3CClient` stubs for W3C compliant webdriver implementation.
 - `WebDriverFactory` as a shortcut for driver instantiation.
 - `Timeout\Interceptor` to prevent unresolved (hanging) driver promises, whenever it fails
 (using [reactphp/promise-timer](https://github.com/reactphp/promise-timer)).
-- `ClientInterface::createSession()` method implementation (opening Selenium hub session to interact with remote
+- `ClientInterface::createSession()` method implementation (opening a Selenium hub session to interact with remote
 browser instance).
 
 This early development version doesn't yet contain full implementation for the introduced `WebDriverInterface`, only
 core design solutions and library interfaces are defined.
 
-[Unreleased]: https://github.com/itnelo/reactphp-webdriver/compare/0.1.0...0.x
+[Unreleased]: https://github.com/itnelo/reactphp-webdriver/compare/0.2.0...0.x
 [0.2.0]: https://github.com/itnelo/reactphp-webdriver/compare/0.1.0..0.2.0
 [0.1.0]: https://github.com/itnelo/reactphp-webdriver/releases/tag/0.1.0
