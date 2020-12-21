@@ -127,9 +127,9 @@ final class CheckRoutine
                 // handling evaluation results.
                 $this->_isEvaluating = true;
                 $resultPromise->then(
-                    function () use ($evaluationDeferred) {
-                        // at some point, a promise has been successfully resolved.
-                        $evaluationDeferred->resolve(null);
+                    function ($value) use ($evaluationDeferred) {
+                        // at some point, a promise has been successfully resolved (preserving resval).
+                        $evaluationDeferred->resolve($value);
                     },
                     function (Throwable $rejectionReason) {
                         // signals that we can take another promise from the condition callback to continue our checks.
@@ -154,11 +154,11 @@ final class CheckRoutine
         );
 
         return $conditionMetTimedPromise->then(
-            function () {
+            function ($value) {
                 // cleaning up a related timer with condition-check logic.
                 $this->loop->cancelTimer($this->_evaluationTimer);
 
-                return null;
+                return $value;
             },
             function (Throwable $rejectionReason) {
                 $this->loop->cancelTimer($this->_evaluationTimer);
