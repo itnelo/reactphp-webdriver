@@ -75,8 +75,11 @@ interface WebDriverInterface extends ClientInterface
      * A condition callback must return an instance of PromiseInterface. Whenever that promise becomes rejected, driver
      * will try to get a new promise from the callback, until it reaches a given timeout for retry attempts.
      *
-     * Note: waitUntil itself doesn't apply any timeouts for a single result promise (check iteration), the user-side
+     * Note 1: waitUntil itself doesn't apply any timeouts for a single result promise (check iteration), the user-side
      * MUST control any kind of promise timeouts for the condition callback, which is supplied to the method.
+     *
+     * Note 2: the resulting value for the waitUntil promise will be a value, which is forwarded by the condition
+     * callback (see an example below).
      *
      * Usage example:
      *
@@ -90,6 +93,9 @@ interface WebDriverInterface extends ClientInterface
      *                 if (!$isVisible) {
      *                     throw new RuntimeException("Not visible yet! Let's retry!");
      *                 }
+     *
+     *                 // this value will be forwarded as a "result value" for the waitUntil promise.
+     *                 return 'it is visible now!';
      *             }
      *         );
      *     },
@@ -97,9 +103,11 @@ interface WebDriverInterface extends ClientInterface
      * );
      *
      * $becomeVisiblePromise->then(
-     *     function () use ($webDriver) {
+     *     function (string $forwardedValue) use ($webDriver) {
      *         // try-catch
      *         $webDriver->clickElement(...);    // sending a click command only if we are sure the target is visible.
+     *
+     *         // $forwardedValue === 'it is visible now!'
      *     }
      *     // handle case when the element is not visible on the page
      * );
@@ -109,7 +117,7 @@ interface WebDriverInterface extends ClientInterface
      * @param float    $time                 Time (in seconds) to wait for successfully resolved promise from the
      *                                       condition callback (minimum: 0.5)
      *
-     * @return PromiseInterface<null>
+     * @return PromiseInterface<mixed>
      */
     public function waitUntil(callable $conditionMetCallback, float $time = 30.0): PromiseInterface;
 
@@ -118,7 +126,7 @@ interface WebDriverInterface extends ClientInterface
      * {filePath}, rejection reason with error message will be provided otherwise.
      *
      * @param string $sessionIdentifier Session identifier for Selenium Grid server (hub)
-     * @param string $filePath          Path where a screenshot image will be saved
+     * @param string $filePath          Path, where a screenshot image must be saved
      *
      * @return PromiseInterface<null>
      */

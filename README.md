@@ -86,7 +86,7 @@ $socketConnector = new SocketConnector(
             'verify_peer' => false,
             'verify_peer_name' => false,
         ],
-    ],
+    ]
 );
 $browser = new Browser($loop, $socketConnector);
 $browser = $browser->withRejectErrorResponse(false);
