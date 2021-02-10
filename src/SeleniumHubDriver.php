@@ -114,9 +114,12 @@ class SeleniumHubDriver implements WebDriverInterface
      */
     public function removeSession(string $sessionIdentifier): PromiseInterface
     {
-        // todo: implementation
+        $quitConfirmationPromise = $this->hubClient->removeSession($sessionIdentifier);
 
-        return reject(new RuntimeException('Not implemented.'));
+        return $this->timeoutInterceptor->applyTimeout(
+            $quitConfirmationPromise,
+            'Unable to complete a session remove command.'
+        );
     }
 
     /**

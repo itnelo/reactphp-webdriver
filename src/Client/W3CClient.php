@@ -184,9 +184,30 @@ class W3CClient implements ClientInterface
      */
     public function removeSession(string $sessionIdentifier): PromiseInterface
     {
-        // todo: implementation
+        $requestUri = sprintf(
+            'http://%s:%d/wd/hub/session/%s',
+            $this->_options['server']['host'],
+            $this->_options['server']['port'],
+            $sessionIdentifier
+        );
 
-        return reject(new RuntimeException('Not implemented.'));
+        $requestHeaders = [
+            'Content-Type' => 'application/json; charset=UTF-8',
+        ];
+
+        $responsePromise = $this->httpClient->delete($requestUri, $requestHeaders);
+
+        $quitConfirmationPromise = $responsePromise
+            ->then(fn (ResponseInterface $response) => $this->onCommandConfirmation($response))
+            ->then(
+                null,
+                function (Throwable $rejectionReason) {
+                    throw new RuntimeException('Unable to close a session.', 0, $rejectionReason);
+                }
+            )
+        ;
+
+        return $quitConfirmationPromise;
     }
 
     /**
