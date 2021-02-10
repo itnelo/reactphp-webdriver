@@ -3,7 +3,7 @@
 /*
  * This file is part of the ReactPHP WebDriver <https://github.com/itnelo/reactphp-webdriver>.
  *
- * (c) 2020 Pavel Petrov <itnelo@gmail.com>.
+ * (c) 2020-2021 Pavel Petrov <itnelo@gmail.com>.
  *
  * For the full copyright and license information, please view the LICENSE
  * file that was distributed with this source code.
@@ -817,10 +817,14 @@ class W3CClient implements ClientInterface
     {
         $responseValueNode = $this->deserializeResponse($response);
 
-        // todo: locate an error message or set it as "undefined error"
-        if (null !== $responseValueNode) {
-            throw new RuntimeException($errorMessage);
+        if (null === $responseValueNode) {
+            return;
         }
+
+        $driverMessage            = $responseValueNode['message'] ?? 'undefined driver error';
+        $confirmationErrorMessage = sprintf('%s %s.', $errorMessage, $driverMessage);
+
+        throw new RuntimeException($confirmationErrorMessage);
     }
 
     /**

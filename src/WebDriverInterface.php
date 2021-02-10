@@ -3,7 +3,7 @@
 /*
  * This file is part of the ReactPHP WebDriver <https://github.com/itnelo/reactphp-webdriver>.
  *
- * (c) 2020 Pavel Petrov <itnelo@gmail.com>.
+ * (c) 2020-2021 Pavel Petrov <itnelo@gmail.com>.
  *
  * For the full copyright and license information, please view the LICENSE
  * file that was distributed with this source code.
@@ -116,10 +116,15 @@ interface WebDriverInterface extends ClientInterface
      * @param callable $conditionMetCallback A condition to be met, as a callback
      * @param float    $time                 Time (in seconds) to wait for successfully resolved promise from the
      *                                       condition callback (minimum: 0.5)
+     * @param float    $checkInterval        The interval for condition checks, in seconds (minimum: 0.1)
      *
      * @return PromiseInterface<mixed>
      */
-    public function waitUntil(callable $conditionMetCallback, float $time = 30.0): PromiseInterface;
+    public function waitUntil(
+        callable $conditionMetCallback,
+        float $time = 30.0,
+        float $checkInterval = 0.5
+    ): PromiseInterface;
 
     /**
      * Returns a promise that will be resolved if a screenshot is successfully received and saved using the specified
