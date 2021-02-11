@@ -32,7 +32,27 @@ $ composer require itnelo/reactphp-webdriver:^0.2
 
 ## How to use
 
-Call a factory method to get your instance (recommended):
+Call a factory method to get your instance (recommended). The minimal configuration is:
+
+```php
+use React\EventLoop\Factory as LoopFactory;
+use Itnelo\React\WebDriver\WebDriverFactory;
+
+$loop = LoopFactory::create();
+
+$webDriver = WebDriverFactory::create(
+    $loop,
+    [
+        'hub' => [
+            'host' => 'selenium-hub',
+            'port' => 4444,
+        ],
+    ]
+);
+```
+
+You can customize a set of parameters for the underlying [ReactPHP Browser](https://github.com/reactphp/http#browser)
+and tune driver options:
 
 ```php
 use React\EventLoop\Factory as LoopFactory;
@@ -45,7 +65,7 @@ $webDriver = WebDriverFactory::create(
     [
         'browser' => [
             'tcp' => [
-                'bindto' => '192.168.56.10:0',
+                'bindto' => '192.169.56.10:0',
             ],
             'tls' => [
                 'verify_peer' => false,
@@ -63,7 +83,7 @@ $webDriver = WebDriverFactory::create(
 );
 ```
 
-Manual configuration (if you want to configure each component as a separate service, e.g. compiling a DI container
+Manual configuration (if you prefer to configure each component as a separate service, e.g. compiling a DI container
 and want to reuse existing service definitions):
 
 ```php
@@ -80,7 +100,7 @@ $socketConnector = new SocketConnector(
     $loop,
     [
         'tcp' => [
-            'bindto' => '192.168.56.10:0',
+            'bindto' => '192.169.56.10:0',
         ],
         'tls' => [
             'verify_peer' => false,

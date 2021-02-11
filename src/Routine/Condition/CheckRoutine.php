@@ -84,7 +84,7 @@ final class CheckRoutine
      *
      * @throws RuntimeException Whenever the routine is already in the running state
      */
-    public function run(callable $conditionMetCallback, float $checkInterval = 0.5): PromiseInterface
+    public function run(callable $conditionMetCallback, float $checkInterval): PromiseInterface
     {
         if ($this->_evaluationTimer instanceof TimerInterface) {
             throw new RuntimeException('Routine is already running.');

@@ -3,7 +3,7 @@
 /*
  * This file is part of the ReactPHP WebDriver <https://github.com/itnelo/reactphp-webdriver>.
  *
- * (c) 2020 Pavel Petrov <itnelo@gmail.com>.
+ * (c) 2020-2021 Pavel Petrov <itnelo@gmail.com>.
  *
  * For the full copyright and license information, please view the LICENSE
  * file that was distributed with this source code.
@@ -114,9 +114,12 @@ class SeleniumHubDriver implements WebDriverInterface
      */
     public function removeSession(string $sessionIdentifier): PromiseInterface
     {
-        // todo: implementation
+        $quitConfirmationPromise = $this->hubClient->removeSession($sessionIdentifier);
 
-        return reject(new RuntimeException('Not implemented.'));
+        return $this->timeoutInterceptor->applyTimeout(
+            $quitConfirmationPromise,
+            'Unable to complete a session remove command.'
+        );
     }
 
     /**
@@ -310,15 +313,21 @@ class SeleniumHubDriver implements WebDriverInterface
     /**
      * {@inheritDoc}
      */
-    public function waitUntil(callable $conditionMetCallback, float $time = 30.0): PromiseInterface
-    {
-        $timeNormalized = max(0.5, $time);
+    public function waitUntil(
+        callable $conditionMetCallback,
+        float $time = 30.0,
+        float $checkInterval = 0.5
+    ): PromiseInterface {
+        $timeNormalized          = max(0.5, $time);
+        $checkIntervalNormalized = max(0.1, $checkInterval);
 
         // todo: probably, should be redesigned, to reduce amount of "new" calls
         $timeoutInterceptor = new TimeoutInterceptor($this->loop, $timeNormalized);
         $checkRoutine       = new ConditionCheckRoutine($this->loop, $timeoutInterceptor);
 
-        return $checkRoutine->run($conditionMetCallback);
+        $conditionMetPromise = $checkRoutine->run($conditionMetCallback, $checkIntervalNormalized);
+
+        return $conditionMetPromise;
     }
 
     /**
