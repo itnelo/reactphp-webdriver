@@ -27,7 +27,7 @@ there, and their code / version constraints may need a review, to include a wide
 With [composer](https://getcomposer.org/download):
 
 ```
-$ composer require itnelo/reactphp-webdriver:^0.2
+$ composer require itnelo/reactphp-webdriver:^0.3
 ```
 
 ## How to use
