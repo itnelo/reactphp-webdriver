@@ -21,6 +21,7 @@ use React\EventLoop\LoopInterface;
 use React\Http\Browser;
 use React\Socket\Connector as SocketConnector;
 use Symfony\Component\OptionsResolver\Exception\ExceptionInterface as ConfigurationExceptionInterface;
+use Symfony\Component\OptionsResolver\Options;
 use Symfony\Component\OptionsResolver\OptionsResolver;
 
 /**
@@ -41,7 +42,7 @@ final class WebDriverFactory
      *     [
      *         'browser' => [
      *             'tcp' => [
-     *                 'bindto' => '192.168.56.10:0',
+     *                 'bindto' => '192.169.56.10:0',
      *             ],
      *             'tls' => [
      *                 'verify_peer' => false,
@@ -108,8 +109,16 @@ final class WebDriverFactory
                             'Maximum time to wait (in seconds) for command execution '
                             . '(do not correlate with HTTP timeouts)'
                         )
-                        ->allowedTypes('float')
+                        ->allowedTypes('int', 'float')
                         ->default(30.0)
+                        ->normalize(
+                            function (Options $options, $commandTimeout) {
+                                $commandTimeoutNormalized = (float) $commandTimeout;
+                                $commandTimeoutNormalized = max(0.1, $commandTimeoutNormalized);
+
+                                return $commandTimeoutNormalized;
+                            }
+                        )
                     ;
                 }
             )
