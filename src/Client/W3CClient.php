@@ -40,6 +40,13 @@ use function React\Promise\reject;
 class W3CClient implements ClientInterface
 {
     /**
+     * A pattern to recognize session identifier in the WebDriver response
+     *
+     * @var string
+     */
+    private const PATTERN_SESSION_IDENTIFIER = '/[":\s]+([a-z\d]{32})/Ui';
+
+    /**
      * Sends commands to the Selenium Grid endpoint using W3C protocol over HTTP
      *
      * @var Browser
@@ -116,9 +123,44 @@ class W3CClient implements ClientInterface
      */
     public function getSessionIdentifiers(): PromiseInterface
     {
-        // todo: implementation
+        $requestUri = sprintf(
+            'http://%s:%d/wd/hub/sessions',
+            $this->_options['server']['host'],
+            $this->_options['server']['port']
+        );
 
-        return reject(new RuntimeException('Not implemented.'));
+        $requestHeaders = [
+            'Content-Type' => 'application/json; charset=UTF-8',
+        ];
+
+        $responsePromise = $this->httpClient->get($requestUri, $requestHeaders);
+
+        $identifierListPromise = $responsePromise
+            ->then(
+                function (ResponseInterface $response) {
+                    $dataArray = $this->deserializeResponse($response);
+                    $payload   = $dataArray['message'] ?? '';
+
+                    preg_match_all(self::PATTERN_SESSION_IDENTIFIER, $payload, $matches);
+
+                    if (!isset($matches[1]) || 1 > count($matches[1])) {
+                        throw new RuntimeException('Unable to locate a list of session identifiers in the response.');
+                    }
+
+                    $identifierList = $matches[1];
+
+                    return $identifierList;
+                }
+            )
+            ->then(
+                null,
+                function (Throwable $rejectionReason) {
+                    throw new RuntimeException('Unable to get a list of session identifiers.', 0, $rejectionReason);
+                }
+            )
+        ;
+
+        return $identifierListPromise;
     }
 
     /**
@@ -148,7 +190,7 @@ class W3CClient implements ClientInterface
             function (ResponseInterface $response) use ($sessionOpeningDeferred) {
                 try {
                     $responseBody = (string) $response->getBody();
-                    preg_match('/sessionid[":\s]+([a-z\d]{32})/Ui', $responseBody, $matches);
+                    preg_match(self::PATTERN_SESSION_IDENTIFIER, $responseBody, $matches);
 
                     if (!isset($matches[1])) {
                         // todo: locate an error message or set it as "undefined error"
