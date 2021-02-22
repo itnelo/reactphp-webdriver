@@ -277,6 +277,10 @@ class W3CClient implements ClientInterface
                 try {
                     $tabIdentifiers = $this->deserializeResponse($response);
 
+                    if (!is_array($tabIdentifiers)) {
+                        throw new RuntimeException('Unable to locate tab identifiers in the response.');
+                    }
+
                     $tabLookupDeferred->resolve($tabIdentifiers);
                 } catch (Throwable $exception) {
                     $reason = new RuntimeException(
@@ -322,6 +326,10 @@ class W3CClient implements ClientInterface
             ->then(
                 function (ResponseInterface $response) {
                     $tabIdentifier = $this->deserializeResponse($response);
+
+                    if (!is_string($tabIdentifier)) {
+                        throw new RuntimeException('Unable to locate a tab identifier in the response.');
+                    }
 
                     return $tabIdentifier;
                 }
@@ -438,6 +446,10 @@ class W3CClient implements ClientInterface
                 function (ResponseInterface $response) {
                     $uriCurrent = $this->deserializeResponse($response);
 
+                    if (!is_string($uriCurrent)) {
+                        throw new RuntimeException('Unable to locate an URI in the response.');
+                    }
+
                     return $uriCurrent;
                 }
             )
@@ -474,6 +486,10 @@ class W3CClient implements ClientInterface
             ->then(
                 function (ResponseInterface $response) {
                     $sourceCode = $this->deserializeResponse($response);
+
+                    if (!is_string($sourceCode)) {
+                        throw new RuntimeException('Unable to locate source code in the response.');
+                    }
 
                     return $sourceCode;
                 }
@@ -598,6 +614,10 @@ class W3CClient implements ClientInterface
             ->then(
                 function (ResponseInterface $response) {
                     $visibilityStatus = $this->deserializeResponse($response);
+
+                    if (!is_bool($visibilityStatus)) {
+                        throw new RuntimeException('Unable to locate a visibility status in the response.');
+                    }
 
                     return $visibilityStatus;
                 }
@@ -778,7 +798,12 @@ class W3CClient implements ClientInterface
             ->then(
                 function (ResponseInterface $response) {
                     $imageContentsEncoded = $this->deserializeResponse($response);
-                    $imageContents        = base64_decode($imageContentsEncoded);
+
+                    if (!is_string($imageContentsEncoded)) {
+                        throw new RuntimeException('Unable to locate screenshot contents in the response.');
+                    }
+
+                    $imageContents = base64_decode($imageContentsEncoded);
 
                     return $imageContents;
                 }
