@@ -40,6 +40,13 @@ use function React\Promise\reject;
 class W3CClient implements ClientInterface
 {
     /**
+     * A pattern to recognize session identifier in the WebDriver response
+     *
+     * @var string
+     */
+    private const PATTERN_SESSION_IDENTIFIER = '/[":\s]+([a-z\d]{32})/Ui';
+
+    /**
      * Sends commands to the Selenium Grid endpoint using W3C protocol over HTTP
      *
      * @var Browser
@@ -116,9 +123,44 @@ class W3CClient implements ClientInterface
      */
     public function getSessionIdentifiers(): PromiseInterface
     {
-        // todo: implementation
+        $requestUri = sprintf(
+            'http://%s:%d/wd/hub/sessions',
+            $this->_options['server']['host'],
+            $this->_options['server']['port']
+        );
 
-        return reject(new RuntimeException('Not implemented.'));
+        $requestHeaders = [
+            'Content-Type' => 'application/json; charset=UTF-8',
+        ];
+
+        $responsePromise = $this->httpClient->get($requestUri, $requestHeaders);
+
+        $identifierListPromise = $responsePromise
+            ->then(
+                function (ResponseInterface $response) {
+                    $dataArray = $this->deserializeResponse($response);
+                    $payload   = $dataArray['message'] ?? '';
+
+                    preg_match_all(self::PATTERN_SESSION_IDENTIFIER, $payload, $matches);
+
+                    if (!isset($matches[1]) || 1 > count($matches[1])) {
+                        throw new RuntimeException('Unable to locate a list of session identifiers in the response.');
+                    }
+
+                    $identifierList = $matches[1];
+
+                    return $identifierList;
+                }
+            )
+            ->then(
+                null,
+                function (Throwable $rejectionReason) {
+                    throw new RuntimeException('Unable to get a list of session identifiers.', 0, $rejectionReason);
+                }
+            )
+        ;
+
+        return $identifierListPromise;
     }
 
     /**
@@ -148,7 +190,7 @@ class W3CClient implements ClientInterface
             function (ResponseInterface $response) use ($sessionOpeningDeferred) {
                 try {
                     $responseBody = (string) $response->getBody();
-                    preg_match('/sessionid[":\s]+([a-z\d]{32})/Ui', $responseBody, $matches);
+                    preg_match(self::PATTERN_SESSION_IDENTIFIER, $responseBody, $matches);
 
                     if (!isset($matches[1])) {
                         // todo: locate an error message or set it as "undefined error"
@@ -235,6 +277,10 @@ class W3CClient implements ClientInterface
                 try {
                     $tabIdentifiers = $this->deserializeResponse($response);
 
+                    if (!is_array($tabIdentifiers)) {
+                        throw new RuntimeException('Unable to locate tab identifiers in the response.');
+                    }
+
                     $tabLookupDeferred->resolve($tabIdentifiers);
                 } catch (Throwable $exception) {
                     $reason = new RuntimeException(
@@ -280,6 +326,10 @@ class W3CClient implements ClientInterface
             ->then(
                 function (ResponseInterface $response) {
                     $tabIdentifier = $this->deserializeResponse($response);
+
+                    if (!is_string($tabIdentifier)) {
+                        throw new RuntimeException('Unable to locate a tab identifier in the response.');
+                    }
 
                     return $tabIdentifier;
                 }
@@ -396,6 +446,10 @@ class W3CClient implements ClientInterface
                 function (ResponseInterface $response) {
                     $uriCurrent = $this->deserializeResponse($response);
 
+                    if (!is_string($uriCurrent)) {
+                        throw new RuntimeException('Unable to locate an URI in the response.');
+                    }
+
                     return $uriCurrent;
                 }
             )
@@ -432,6 +486,10 @@ class W3CClient implements ClientInterface
             ->then(
                 function (ResponseInterface $response) {
                     $sourceCode = $this->deserializeResponse($response);
+
+                    if (!is_string($sourceCode)) {
+                        throw new RuntimeException('Unable to locate source code in the response.');
+                    }
 
                     return $sourceCode;
                 }
@@ -556,6 +614,10 @@ class W3CClient implements ClientInterface
             ->then(
                 function (ResponseInterface $response) {
                     $visibilityStatus = $this->deserializeResponse($response);
+
+                    if (!is_bool($visibilityStatus)) {
+                        throw new RuntimeException('Unable to locate a visibility status in the response.');
+                    }
 
                     return $visibilityStatus;
                 }
@@ -736,7 +798,12 @@ class W3CClient implements ClientInterface
             ->then(
                 function (ResponseInterface $response) {
                     $imageContentsEncoded = $this->deserializeResponse($response);
-                    $imageContents        = base64_decode($imageContentsEncoded);
+
+                    if (!is_string($imageContentsEncoded)) {
+                        throw new RuntimeException('Unable to locate screenshot contents in the response.');
+                    }
+
+                    $imageContents = base64_decode($imageContentsEncoded);
 
                     return $imageContents;
                 }

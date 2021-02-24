@@ -104,9 +104,12 @@ class SeleniumHubDriver implements WebDriverInterface
      */
     public function getSessionIdentifiers(): PromiseInterface
     {
-        // todo: implementation
+        $identifierListPromise = $this->hubClient->getSessionIdentifiers();
 
-        return reject(new RuntimeException('Not implemented.'));
+        return $this->timeoutInterceptor->applyTimeout(
+            $identifierListPromise,
+            'Unable to complete a get session identifiers command.'
+        );
     }
 
     /**
@@ -127,10 +130,10 @@ class SeleniumHubDriver implements WebDriverInterface
      */
     public function getTabIdentifiers(string $sessionIdentifier): PromiseInterface
     {
-        $sessionIdentifierPromise = $this->hubClient->getTabIdentifiers($sessionIdentifier);
+        $tabIdentifierListPromise = $this->hubClient->getTabIdentifiers($sessionIdentifier);
 
         return $this->timeoutInterceptor->applyTimeout(
-            $sessionIdentifierPromise,
+            $tabIdentifierListPromise,
             'Unable to complete a tab lookup command.'
         );
     }
