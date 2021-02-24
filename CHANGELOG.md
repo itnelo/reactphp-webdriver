@@ -12,6 +12,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - No description yet.
 
+## [0.4.0] - 2021-02-25
+
+### Added
+
+- `ClientInterface::getSessionIdentifiers()` implementation to get a list with WebDriver sessions from the active pool
+(as an opportunity to resume existing sessions).
+
+### Fixed
+
+- Missed type checks after WebDriver response deserialization for some methods (e.g. to prevent misreading an
+error array as a valid command output).
+
 ## [0.3.0] - 2021-02-11
 
 ### Added
@@ -106,7 +118,8 @@ browser instance).
 This early development version doesn't yet contain full implementation for the introduced `WebDriverInterface`, only
 core design solutions and library interfaces are defined.
 
-[Unreleased]: https://github.com/itnelo/reactphp-webdriver/compare/0.3.0...0.x
+[Unreleased]: https://github.com/itnelo/reactphp-webdriver/compare/0.4.0...0.x
+[0.4.0]: https://github.com/itnelo/reactphp-webdriver/compare/0.3.0..0.4.0
 [0.3.0]: https://github.com/itnelo/reactphp-webdriver/compare/0.2.1..0.3.0
 [0.2.1]: https://github.com/itnelo/reactphp-webdriver/compare/0.2.0..0.2.1
 [0.2.0]: https://github.com/itnelo/reactphp-webdriver/compare/0.1.0..0.2.0
